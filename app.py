@@ -35,6 +35,8 @@ if 'step' not in st.session_state:
     st.session_state.step = 1
 if 'answers' not in st.session_state:
     st.session_state.answers = {}
+if 'comments' not in st.session_state:
+    st.session_state.comments = {}
 
 # Вопросы
 questions = [
@@ -104,12 +106,13 @@ questions = [
 total_steps = len(questions)
 current_step = st.session_state.step
 
-# Функция сохранения результатов в CSV
-def save_results(answers):
+# Функция сохранения результатов в CSV (теперь с комментариями)
+def save_results(answers, comments):
     csv_file = "results.csv"
     data = {"Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
     for idx, q in enumerate(questions, start=1):
-        data[f"Шаг {idx}: {q['title']}"] = answers.get(f"q_{idx}", "")
+        data[f"Шаг {idx} (Ответ)"] = answers.get(f"q_{idx}", "")
+        data[f"Шаг {idx} (Комментарий)"] = comments.get(f"comment_{idx}", "")
     
     df_new = pd.DataFrame([data])
     if os.path.exists(csv_file):
@@ -146,6 +149,16 @@ if current_step <= total_steps:
         )
 
         st.write("")
+        # Поле для комментария
+        comment = st.text_area(
+            "Комментарий (необязательно):",
+            value=st.session_state.comments.get(f"comment_{current_step}", ""),
+            key=f"comment_input_{current_step}",
+            placeholder="Здесь можно написать свой комментарий...",
+            height=100
+        )
+
+        st.write("")
         col_prev, col_next, _ = st.columns([1, 1, 2])
         
         with col_prev:
@@ -154,10 +167,12 @@ if current_step <= total_steps:
                 st.rerun()
 
         with col_next:
+            # Кнопка "Далее" активна ТОЛЬКО если выбран вариант ответа
             if st.button("Далее →", type="primary", disabled=(selected_option is None)):
                 st.session_state.answers[f"q_{current_step}"] = selected_option
+                st.session_state.comments[f"comment_{current_step}"] = comment
                 if current_step == total_steps:
-                    save_results(st.session_state.answers)
+                    save_results(st.session_state.answers, st.session_state.comments)
                 st.session_state.step += 1
                 st.rerun()
 
@@ -178,19 +193,28 @@ else:
     if st.button("Пройти заново", type="primary"):
         st.session_state.step = 1
         st.session_state.answers = {}
+        st.session_state.comments = {}
         st.rerun()
 
-# Скрытая панель администратора для просмотра результатов
-with st.sidebar:
-    st.title("Панель администратора")
-    admin_pass = st.text_input("Пароль:", type="password")
-    CORRECT_PASSWORD = "1234" 
-    
-    if admin_pass == CORRECT_PASSWORD:
-        st.subheader("Сохранённые ответы:")
-        if os.path.exists("results.csv"):
-            df = pd.read_csv("results.csv", encoding='utf-8-sig')
-            st.dataframe(df)
-            st.download_button("Скачать CSV", data=df.to_csv(index=False, encoding='utf-8-sig'), file_name="results.csv", mime="text/csv")
-        else:
-            st.info("Ответов пока нет.")
+# --- СЕКРЕТНАЯ АДМИН-ПАНЕЛЬ ---
+query_params = st.query_params
+is_admin = query_params.get("admin") == "true"
+
+if is_admin:
+    with st.sidebar:
+        st.title("Панель администратора")
+        admin_pass = st.text_input("Пароль:", type="password")
+        
+        correct_password = st.secrets.get("admin", {}).get("password", "1234")
+        
+        if admin_pass == correct_password:
+            st.success("Доступ разрешён")
+            st.subheader("Сохранённые ответы:")
+            if os.path.exists("results.csv"):
+                df = pd.read_csv("results.csv", encoding='utf-8-sig')
+                st.dataframe(df)
+                st.download_button("Скачать CSV", data=df.to_csv(index=False, encoding='utf-8-sig'), file_name="results.csv", mime="text/csv")
+            else:
+                st.info("Ответов пока нет.")
+        elif admin_pass:
+            st.error("Неверный пароль")
