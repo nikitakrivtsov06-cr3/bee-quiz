@@ -5,18 +5,25 @@ from datetime import datetime
 
 st.set_page_config(page_title="Sunday Quiz", layout="wide")
 
-# CSS для красивого оформления
+# CSS для красивого оформления (оптимизирован под мобильные)
 st.markdown("""
     <style>
     .stApp { 
         background-color: #f4f8fb; 
     }
+    /* Заголовки и основной текст — всегда тёмные */
+    h1, h2, h3, h4, h5, h6,
+    .stMarkdown, .stMarkdown p, .stCaption,
+    label, .stTextArea label {
+        color: #1a1a1a !important;
+    }
+    /* Радио-кнопки */
     div[role="radiogroup"] {
         gap: 10px;
     }
     div[role="radiogroup"] > label {
-        background-color: #ffffff;
-        padding: 14px 20px;
+        background-color: #ffffff !important;
+        padding: 14px 18px;
         border-radius: 12px;
         border: 1px solid #e1e8ed;
         box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.03);
@@ -24,8 +31,39 @@ st.markdown("""
         cursor: pointer;
         transition: all 0.2s ease;
     }
+    /* Принудительно тёмный текст внутри радио-кнопок */
+    div[role="radiogroup"] > label p,
+    div[role="radiogroup"] > label span,
+    div[role="radiogroup"] > label div {
+        color: #1a1a1a !important;
+        font-size: 1rem;
+    }
     div[role="radiogroup"] > label:hover {
         border-color: #ff4b4b;
+    }
+    /* Поле комментария */
+    .stTextArea textarea {
+        color: #1a1a1a !important;
+        background-color: #ffffff !important;
+    }
+    /* Мобильная адаптация */
+    @media (max-width: 768px) {
+        .block-container {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+            padding-top: 1rem !important;
+        }
+        h2 { 
+            font-size: 1.35rem !important; 
+            line-height: 1.3 !important;
+        }
+        div[role="radiogroup"] > label {
+            padding: 12px 14px;
+        }
+        div[role="radiogroup"] > label p,
+        div[role="radiogroup"] > label span {
+            font-size: 0.95rem !important;
+        }
     }
     </style>
 """, unsafe_allow_html=True)
@@ -106,7 +144,7 @@ questions = [
 total_steps = len(questions)
 current_step = st.session_state.step
 
-# Функция сохранения результатов в CSV (теперь с комментариями)
+# Функция сохранения результатов в CSV
 def save_results(answers, comments):
     csv_file = "results.csv"
     data = {"Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
@@ -120,77 +158,75 @@ def save_results(answers, comments):
     else:
         df_new.to_csv(csv_file, mode='w', header=True, index=False, encoding='utf-8-sig')
 
-# Основной интерфейс
+# Основной интерфейс — одна колонка (мобильная версия)
 if current_step <= total_steps:
     q_data = questions[current_step - 1]
     
     st.progress((current_step - 1) / total_steps)
+    st.caption(f"шаг {current_step}/{total_steps}")
+    st.markdown(f"## **{q_data['title']}**")
+    st.caption("Выберите один ответ")
     
-    col_left, col_right = st.columns([1, 1.2], gap="large")
-    
-    with col_left:
-        st.caption(f"шаг {current_step}/{total_steps}")
-        st.markdown(f"## **{q_data['title']}**")
-        st.caption("Выберите один ответ")
-
-        previous_choice = st.session_state.answers.get(f"q_{current_step}")
-        
-        if previous_choice in q_data["options"]:
-            default_index = q_data["options"].index(previous_choice)
-        else:
-            default_index = None
-
-        selected_option = st.radio(
-            label="Options",
-            options=q_data["options"],
-            index=default_index,
-            key=f"radio_{current_step}",
-            label_visibility="collapsed"
-        )
-
-        st.write("")
-        # Поле для комментария
-        comment = st.text_area(
-            "Комментарий (необязательно):",
-            value=st.session_state.comments.get(f"comment_{current_step}", ""),
-            key=f"comment_input_{current_step}",
-            placeholder="Здесь можно написать свой комментарий...",
-            height=100
-        )
-
-        st.write("")
-        col_prev, col_next, _ = st.columns([1, 1, 2])
-        
-        with col_prev:
-            if st.button("← Назад", disabled=(current_step == 1)):
-                st.session_state.step -= 1
-                st.rerun()
-
-        with col_next:
-            # Кнопка "Далее" активна ТОЛЬКО если выбран вариант ответа
-            if st.button("Далее →", type="primary", disabled=(selected_option is None)):
-                st.session_state.answers[f"q_{current_step}"] = selected_option
-                st.session_state.comments[f"comment_{current_step}"] = comment
-                if current_step == total_steps:
-                    save_results(st.session_state.answers, st.session_state.comments)
-                st.session_state.step += 1
-                st.rerun()
-
-    with col_right:
-        if q_data["description"]:
+    # Описание игры — в раскрывающемся блоке, чтобы не занимало весь экран
+    if q_data["description"]:
+        with st.expander("📖 Описание игры", expanded=False):
             st.info(q_data["description"])
-            
-        image_path = q_data["image"]
-        if os.path.exists(image_path):
-            st.image(image_path, use_container_width=True)
-        else:
-            st.image("https://cdn.pixabay.com/photo/2017/01/06/19/15/soap-1958683_1280.jpg", use_container_width=True)
+    
+    # Радио-кнопки с ответами
+    previous_choice = st.session_state.answers.get(f"q_{current_step}")
+    if previous_choice in q_data["options"]:
+        default_index = q_data["options"].index(previous_choice)
+    else:
+        default_index = None
+
+    selected_option = st.radio(
+        label="Options",
+        options=q_data["options"],
+        index=default_index,
+        key=f"radio_{current_step}",
+        label_visibility="collapsed"
+    )
+    
+    # Комментарий
+    comment = st.text_area(
+        "Комментарий (необязательно):",
+        value=st.session_state.comments.get(f"comment_{current_step}", ""),
+        key=f"comment_input_{current_step}",
+        placeholder="Здесь можно написать свой комментарий...",
+        height=100
+    )
+    
+    st.write("")
+    
+    # Кнопки навигации
+    col_prev, col_next = st.columns([1, 1])
+    with col_prev:
+        if st.button("← Назад", disabled=(current_step == 1), use_container_width=True):
+            st.session_state.step -= 1
+            st.rerun()
+    with col_next:
+        if st.button("Далее →", type="primary", disabled=(selected_option is None), use_container_width=True):
+            st.session_state.answers[f"q_{current_step}"] = selected_option
+            st.session_state.comments[f"comment_{current_step}"] = comment
+            if current_step == total_steps:
+                save_results(st.session_state.answers, st.session_state.comments)
+            st.session_state.step += 1
+            st.rerun()
+    
+    st.write("")
+    
+    # Картинка — внизу, чтобы не мешала отвечать
+    image_path = q_data["image"]
+    if os.path.exists(image_path):
+        st.image(image_path, use_container_width=True)
+    else:
+        st.image("https://cdn.pixabay.com/photo/2017/01/06/19/15/soap-1958683_1280.jpg", use_container_width=True)
 
 else:
     st.balloons()
     st.success("Спасибо за прохождение опроса!")
     
-    if st.button("Пройти заново", type="primary"):
+    if st.button("Пройти заново", type="primary", use_container_width=True):
         st.session_state.step = 1
         st.session_state.answers = {}
         st.session_state.comments = {}
@@ -213,7 +249,19 @@ if is_admin:
             if os.path.exists("results.csv"):
                 df = pd.read_csv("results.csv", encoding='utf-8-sig')
                 st.dataframe(df)
-                st.download_button("Скачать CSV", data=df.to_csv(index=False, encoding='utf-8-sig'), file_name="results.csv", mime="text/csv")
+                st.download_button(
+                    "Скачать CSV", 
+                    data=df.to_csv(index=False, encoding='utf-8-sig'), 
+                    file_name="results.csv", 
+                    mime="text/csv"
+                )
+                
+                st.write("---")
+                st.caption("⚠️ Опасная зона")
+                if st.button("🗑️ Очистить все результаты"):
+                    os.remove("results.csv")
+                    st.success("Все результаты удалены!")
+                    st.rerun()
             else:
                 st.info("Ответов пока нет.")
         elif admin_pass:
