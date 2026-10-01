@@ -14,38 +14,93 @@ st.markdown("""
     /* Заголовки и основной текст — всегда тёмные */
     h1, h2, h3, h4, h5, h6,
     .stMarkdown, .stMarkdown p, .stCaption,
-    label, .stTextArea label {
+    .stTextArea label {
         color: #1a1a1a !important;
     }
-    /* Радио-кнопки */
+    
+    /* === ЯРКИЙ РАСКРЫВАЮЩИЙСЯ БЛОК "ОПИСАНИЕ ИГРЫ" === */
+    div[data-testid="stExpander"] {
+        background-color: #e8f4ff !important;
+        border: 2px solid #4a90e2 !important;
+        border-radius: 12px !important;
+        overflow: hidden !important;
+        box-shadow: 0px 3px 10px rgba(74, 144, 226, 0.15) !important;
+    }
+    div[data-testid="stExpander"] summary {
+        background-color: #e8f4ff !important;
+        color: #1a5fb4 !important;
+        font-weight: 700 !important;
+        padding: 16px !important;
+        font-size: 1.05rem !important;
+        cursor: pointer !important;
+        list-style: none !important;
+    }
+    div[data-testid="stExpander"] summary:hover {
+        background-color: #d4e9ff !important;
+    }
+    div[data-testid="stExpander"] summary p,
+    div[data-testid="stExpander"] summary span {
+        color: #1a5fb4 !important;
+        font-weight: 700 !important;
+        font-size: 1.05rem !important;
+    }
+    div[data-testid="stExpander"] summary svg {
+        fill: #1a5fb4 !important;
+        color: #1a5fb4 !important;
+    }
+    
+    /* === РАДИО-КНОПКИ === */
     div[role="radiogroup"] {
-        gap: 10px;
+        gap: 10px !important;
     }
     div[role="radiogroup"] > label {
         background-color: #ffffff !important;
-        padding: 14px 18px;
-        border-radius: 12px;
-        border: 1px solid #e1e8ed;
-        box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.03);
-        width: 100%;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-    /* Принудительно тёмный текст внутри радио-кнопок */
-    div[role="radiogroup"] > label p,
-    div[role="radiogroup"] > label span,
-    div[role="radiogroup"] > label div {
-        color: #1a1a1a !important;
-        font-size: 1rem;
+        padding: 14px 18px !important;
+        border-radius: 12px !important;
+        border: 1px solid #e1e8ed !important;
+        box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.03) !important;
+        width: 100% !important;
+        cursor: pointer !important;
+        transition: all 0.2s ease !important;
+        display: flex !important;
+        align-items: center !important;
+        -webkit-tap-highlight-color: rgba(255, 75, 75, 0.1) !important;
     }
     div[role="radiogroup"] > label:hover {
-        border-color: #ff4b4b;
+        border-color: #ff4b4b !important;
+        background-color: #fff8f8 !important;
     }
+    /* Текст ответа — тёмный и кликабельный */
+    div[role="radiogroup"] > label p,
+    div[role="radiogroup"] > label span {
+        color: #1a1a1a !important;
+        font-size: 1rem !important;
+        cursor: pointer !important;
+        user-select: none !important;
+    }
+    /* Круг радио-кнопки — пустой с обводкой */
+    div[role="radiogroup"] > label > div:first-child > div:first-child {
+        background-color: #ffffff !important;
+        border: 2px solid #b0b8c1 !important;
+        width: 20px !important;
+        height: 20px !important;
+        border-radius: 50% !important;
+        transition: all 0.15s ease !important;
+        flex-shrink: 0 !important;
+    }
+    /* Выбранная кнопка — красная обводка и точка */
+    div[role="radiogroup"] > label > div:first-child > div:first-child[style*="background-color: rgb(255, 75, 75)"],
+    div[role="radiogroup"] > label input[type="radio"]:checked + div {
+        border-color: #ff4b4b !important;
+    }
+    
     /* Поле комментария */
     .stTextArea textarea {
         color: #1a1a1a !important;
         background-color: #ffffff !important;
+        font-size: 1rem !important;
     }
+    
     /* Мобильная адаптация */
     @media (max-width: 768px) {
         .block-container {
@@ -58,11 +113,15 @@ st.markdown("""
             line-height: 1.3 !important;
         }
         div[role="radiogroup"] > label {
-            padding: 12px 14px;
+            padding: 14px 14px !important;
         }
         div[role="radiogroup"] > label p,
         div[role="radiogroup"] > label span {
-            font-size: 0.95rem !important;
+            font-size: 0.98rem !important;
+        }
+        div[data-testid="stExpander"] summary {
+            padding: 14px !important;
+            font-size: 1rem !important;
         }
     }
     </style>
@@ -158,7 +217,7 @@ def save_results(answers, comments):
     else:
         df_new.to_csv(csv_file, mode='w', header=True, index=False, encoding='utf-8-sig')
 
-# Основной интерфейс — одна колонка (мобильная версия)
+# Основной интерфейс — одна колонка
 if current_step <= total_steps:
     q_data = questions[current_step - 1]
     
@@ -167,10 +226,10 @@ if current_step <= total_steps:
     st.markdown(f"## **{q_data['title']}**")
     st.caption("Выберите один ответ")
     
-    # Описание игры — в раскрывающемся блоке, чтобы не занимало весь экран
+    # Яркий раскрывающийся блок с описанием игры
     if q_data["description"]:
-        with st.expander("📖 Описание игры", expanded=False):
-            st.info(q_data["description"])
+        with st.expander("📖  Нажмите, чтобы прочитать описание игры", expanded=False):
+            st.markdown(q_data["description"])
     
     # Радио-кнопки с ответами
     previous_choice = st.session_state.answers.get(f"q_{current_step}")
@@ -196,9 +255,14 @@ if current_step <= total_steps:
         height=100
     )
     
-    st.write("")
+    # Картинка сразу под комментарием
+    image_path = q_data["image"]
+    if os.path.exists(image_path):
+        st.image(image_path, use_container_width=True)
+    else:
+        st.image("https://cdn.pixabay.com/photo/2017/01/06/19/15/soap-1958683_1280.jpg", use_container_width=True)
     
-    # Кнопки навигации
+    # Кнопки навигации внизу
     col_prev, col_next = st.columns([1, 1])
     with col_prev:
         if st.button("← Назад", disabled=(current_step == 1), use_container_width=True):
@@ -212,15 +276,6 @@ if current_step <= total_steps:
                 save_results(st.session_state.answers, st.session_state.comments)
             st.session_state.step += 1
             st.rerun()
-    
-    st.write("")
-    
-    # Картинка — внизу, чтобы не мешала отвечать
-    image_path = q_data["image"]
-    if os.path.exists(image_path):
-        st.image(image_path, use_container_width=True)
-    else:
-        st.image("https://cdn.pixabay.com/photo/2017/01/06/19/15/soap-1958683_1280.jpg", use_container_width=True)
 
 else:
     st.balloons()
