@@ -1,7 +1,9 @@
 import streamlit as st
 import os
+import io
 import pandas as pd
 from datetime import datetime
+from openpyxl.styles import Font, Alignment, PatternFill
 
 st.set_page_config(page_title="Sunday Quiz", layout="wide")
 
@@ -59,7 +61,6 @@ st.markdown("""
         border-color: #ff4b4b !important;
         background-color: #fff8f8 !important;
     }
-    /* Текст ответов — тёмный и кликабельный */
     div[role="radiogroup"] > label,
     div[role="radiogroup"] > label *,
     div[role="radiogroup"] > label p,
@@ -194,6 +195,52 @@ def save_results(answers, comments):
     else:
         df_new.to_csv(csv_file, mode='w', header=True, index=False, encoding='utf-8-sig')
 
+# Функция создания красивого Excel-файла
+def to_excel(df):
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Ответы')
+        worksheet = writer.sheets['Ответы']
+        
+        # === Стилизация заголовков ===
+        header_font = Font(bold=True, color='FFFFFF', size=11)
+        header_fill = PatternFill(start_color='FF4B4B', end_color='FF4B4B', fill_type='solid')
+        header_align = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        
+        for cell in worksheet[1]:
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_align
+        
+        # Высота строки заголовка
+        worksheet.row_dimensions[1].height = 30
+        
+        # === Автоширина колонок ===
+        for column in worksheet.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if cell.value:
+                        # Учитываем переносы строк в комментариях
+                        cell_len = max(len(str(line)) for line in str(cell.value).split('\n'))
+                        max_length = max(max_length, cell_len)
+                except:
+                    pass
+            # Ограничиваем ширину, чтобы не растянуть слишком сильно
+            adjusted_width = min(max_length + 3, 55)
+            worksheet.column_dimensions[column_letter].width = adjusted_width
+        
+        # === Закрепляем шапку, чтобы при прокрутке она оставалась на месте ===
+        worksheet.freeze_panes = 'A2'
+        
+        # === Обтекание текста во всех ячейках + выравнивание по верху ===
+        for row in worksheet.iter_rows(min_row=2):
+            for cell in row:
+                cell.alignment = Alignment(vertical='top', wrap_text=True)
+    
+    return output.getvalue()
+
 # Основной интерфейс — одна колонка
 if current_step <= total_steps:
     q_data = questions[current_step - 1]
@@ -203,12 +250,10 @@ if current_step <= total_steps:
     st.markdown(f"## **{q_data['title']}**")
     st.caption("Выберите один ответ")
     
-    # Раскрывающийся блок с описанием игры
     if q_data["description"]:
         with st.expander("📖  Нажмите, чтобы прочитать описание игры", expanded=False):
             st.markdown(q_data["description"])
     
-    # Радио-кнопки с ответами
     previous_choice = st.session_state.answers.get(f"q_{current_step}")
     if previous_choice in q_data["options"]:
         default_index = q_data["options"].index(previous_choice)
@@ -223,7 +268,6 @@ if current_step <= total_steps:
         label_visibility="collapsed"
     )
     
-    # Комментарий
     comment = st.text_area(
         "Комментарий (необязательно):",
         value=st.session_state.comments.get(f"comment_{current_step}", ""),
@@ -232,14 +276,12 @@ if current_step <= total_steps:
         height=100
     )
     
-    # Картинка сразу под комментарием
     image_path = q_data["image"]
     if os.path.exists(image_path):
         st.image(image_path, use_container_width=True)
     else:
         st.image("https://cdn.pixabay.com/photo/2017/01/06/19/15/soap-1958683_1280.jpg", use_container_width=True)
     
-    # Кнопки навигации внизу
     col_prev, col_next = st.columns([1, 1])
     with col_prev:
         if st.button("← Назад", disabled=(current_step == 1), use_container_width=True):
@@ -255,13 +297,10 @@ if current_step <= total_steps:
             st.rerun()
 
 else:
-    # === ФИНАЛЬНЫЙ ЭКРАН — ВЫРОВНЕН ПО ЦЕНТРУ ===
     st.balloons()
-    
     st.write("")
     st.write("")
     
-    # Центрируем содержимое через три колонки
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.success("🎉 Спасибо за прохождение опроса!")
@@ -289,19 +328,40 @@ if is_admin:
         if admin_pass == correct_password:
             st.success("Доступ разрешён")
             st.subheader("Сохранённые ответы:")
+            
             if os.path.exists("results.csv"):
                 df = pd.read_csv("results.csv", encoding='utf-8-sig')
                 st.dataframe(df)
-                st.download_button(
-                    "Скачать CSV", 
-                    data=df.to_csv(index=False, encoding='utf-8-sig'), 
-                    file_name="results.csv", 
-                    mime="text/csv"
-                )
+                st.caption(f"Всего ответов: **{len(df)}**")
+                
+                # === КНОПКИ СКАЧИВАНИЯ ===
+                st.write("**Скачать результаты:**")
+                col_csv, col_xlsx = st.columns(2)
+                
+                # Имя файла с датой
+                date_str = datetime.now().strftime("%Y-%m-%d_%H-%M")
+                
+                with col_csv:
+                    st.download_button(
+                        "📄 CSV",
+                        data=df.to_csv(index=False, encoding='utf-8-sig'),
+                        file_name=f"results_{date_str}.csv",
+                        mime="text/csv",
+                        use_container_width=True
+                    )
+                
+                with col_xlsx:
+                    st.download_button(
+                        "📊 Excel",
+                        data=to_excel(df),
+                        file_name=f"results_{date_str}.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        use_container_width=True
+                    )
                 
                 st.write("---")
                 st.caption("⚠️ Опасная зона")
-                if st.button("🗑️ Очистить все результаты"):
+                if st.button("🗑️ Очистить все результаты", use_container_width=True):
                     os.remove("results.csv")
                     st.success("Все результаты удалены!")
                     st.rerun()
