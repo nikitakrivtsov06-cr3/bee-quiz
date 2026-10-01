@@ -1,103 +1,66 @@
 import streamlit as st
-import streamlit.components.v1 as components
 import os
 import pandas as pd
 from datetime import datetime
 
 st.set_page_config(page_title="Sunday Quiz", layout="wide")
 
-# === ЖЁСТКАЯ ИНЪЕКЦИЯ JAVASCRIPT — ПРИНУДИТЕЛЬНО ЧЁРНЫЙ ТЕКСТ НА БЕЛОМ ===
-components.html("""
-<script>
-    const doc = window.parent.document;
-    
-    // Форсируем светлую тему
-    doc.documentElement.setAttribute('data-theme', 'light');
-    doc.documentElement.style.colorScheme = 'light';
-    doc.body.style.colorScheme = 'light';
-    
-    // Перебиваем CSS-переменные Streamlit
-    const root = doc.documentElement;
-    root.style.setProperty('--text-color', '#000000', 'important');
-    root.style.setProperty('--primary-text-color', '#000000', 'important');
-    root.style.setProperty('--secondary-text-color', '#333333', 'important');
-    root.style.setProperty('--background-color', '#f4f8fb', 'important');
-    root.style.setProperty('--secondary-background-color', '#ffffff', 'important');
-    
-    // Вставляем агрессивный CSS прямо в head
-    const style = doc.createElement('style');
-    style.textContent = `
-        /* Весь текст — чёрный */
-        body, .stApp, .stApp *, 
-        h1, h2, h3, h4, h5, h6,
-        p, span, div, label,
-        .stMarkdown, .stMarkdown *,
-        .stCaption, .stCaption * {
-            color: #000000 !important;
-            -webkit-text-fill-color: #000000 !important;
-        }
-        
-        /* Плашки ответов — белые */
-        div[role="radiogroup"] > label {
-            background-color: #ffffff !important;
-            border: 1px solid #e1e8ed !important;
-            color: #000000 !important;
-        }
-        
-        /* Текст ответов — чёрный */
-        div[role="radiogroup"] > label,
-        div[role="radiogroup"] > label *,
-        div[role="radiogroup"] > label p,
-        div[role="radiogroup"] > label span,
-        div[role="radiogroup"] > label div,
-        div[role="radiogroup"] > label [data-testid],
-        div[role="radiogroup"] > label [data-testid] *,
-        div[role="radiogroup"] > label [data-baseweb="radio"] * {
-            color: #000000 !important;
-            -webkit-text-fill-color: #000000 !important;
-            opacity: 1 !important;
-        }
-        
-        /* Поле комментария */
-        textarea, input {
-            color: #000000 !important;
-            -webkit-text-fill-color: #000000 !important;
-            background-color: #ffffff !important;
-        }
-        
-        textarea::placeholder {
-            color: #999999 !important;
-            -webkit-text-fill-color: #999999 !important;
-        }
-        
-        /* Раскрывающийся блок */
-        details, summary, [data-testid="stExpander"] {
-            background-color: #e8f4ff !important;
-            border: 2px solid #4a90e2 !important;
-            border-radius: 12px !important;
-        }
-        summary, summary * {
-            color: #1a5fb4 !important;
-            -webkit-text-fill-color: #1a5fb4 !important;
-            font-weight: 700 !important;
-        }
-        
-        /* Фон приложения */
-        .stApp, [data-testid="stAppViewContainer"] {
-            background-color: #f4f8fb !important;
-        }
-    `;
-    doc.head.appendChild(style);
-</script>
-""", height=0)
-
-# === Простой CSS-фолбэк на случай, если JS не сработает ===
+# CSS для красивого оформления (оптимизирован под мобильные)
 st.markdown("""
     <style>
-    .stApp { background-color: #f4f8fb; }
+    /* === ПРИНУДИТЕЛЬНО СВЕТЛАЯ ТЕМА ДЛЯ ВСЕГО ПРИЛОЖЕНИЯ === */
+    :root, html, body, .stApp {
+        color-scheme: light !important;
+        --text-color: #1a1a1a !important;
+        --primary-text-color: #1a1a1a !important;
+        --secondary-text-color: #444444 !important;
+    }
+    .stApp { 
+        background-color: #f4f8fb !important;
+    }
     
-    /* Радио-кнопки */
-    div[role="radiogroup"] { gap: 10px !important; }
+    /* === ЗАГОЛОВКИ И ОБЩИЙ ТЕКСТ === */
+    h1, h2, h3, h4, h5, h6,
+    .stMarkdown, .stMarkdown p, .stCaption,
+    .stTextArea label {
+        color: #1a1a1a !important;
+        -webkit-text-fill-color: #1a1a1a !important;
+    }
+    
+    /* === РАСКРЫВАЮЩИЙСЯ БЛОК "ОПИСАНИЕ ИГРЫ" — тонкая чёрная рамка === */
+    div[data-testid="stExpander"] {
+        background-color: #ffffff !important;
+        border: 1px solid #1a1a1a !important;
+        border-radius: 8px !important;
+        overflow: hidden !important;
+        box-shadow: none !important;
+    }
+    div[data-testid="stExpander"] summary {
+        background-color: #ffffff !important;
+        padding: 14px 16px !important;
+        cursor: pointer !important;
+        list-style: none !important;
+    }
+    div[data-testid="stExpander"] summary:hover {
+        background-color: #f5f5f5 !important;
+    }
+    div[data-testid="stExpander"] summary * {
+        color: #1a1a1a !important;
+        -webkit-text-fill-color: #1a1a1a !important;
+        font-weight: 600 !important;
+        font-size: 1rem !important;
+    }
+    div[data-testid="stExpander"] summary svg {
+        fill: #1a1a1a !important;
+        color: #1a1a1a !important;
+    }
+    
+    /* === РАДИО-КНОПКИ === */
+    div[role="radiogroup"] {
+        gap: 10px !important;
+    }
+    
+    /* Плашка ответа */
     div[role="radiogroup"] > label {
         background-color: #ffffff !important;
         padding: 14px 18px !important;
@@ -107,67 +70,97 @@ st.markdown("""
         width: 100% !important;
         cursor: pointer !important;
         transition: all 0.2s ease !important;
+        -webkit-tap-highlight-color: rgba(255, 75, 75, 0.1) !important;
+        display: flex !important;
+        align-items: center !important;
     }
     div[role="radiogroup"] > label:hover {
         border-color: #ff4b4b !important;
+        background-color: #fff8f8 !important;
     }
+    
+    /* ТЕКСТ ОТВЕТОВ — ТЁМНЫЙ */
     div[role="radiogroup"] > label,
     div[role="radiogroup"] > label *,
     div[role="radiogroup"] > label p,
     div[role="radiogroup"] > label span,
-    div[role="radiogroup"] > label div {
-        color: #000000 !important;
-        -webkit-text-fill-color: #000000 !important;
+    div[role="radiogroup"] > label div,
+    div[role="radiogroup"] > label label,
+    div[role="radiogroup"] > label [data-testid],
+    div[role="radiogroup"] > label [data-testid] *,
+    div[role="radiogroup"] > label [data-testid="stMarkdownContainer"],
+    div[role="radiogroup"] > label [data-testid="stMarkdownContainer"] p,
+    div[role="radiogroup"] > label [data-baseweb="radio"] *,
+    div[role="radiogroup"] > label [class*="Text"],
+    div[role="radiogroup"] > label [class*="text"] {
+        color: #1a1a1a !important;
+        -webkit-text-fill-color: #1a1a1a !important;
+        font-size: 1rem !important;
+        cursor: pointer !important;
+        user-select: none !important;
+        text-shadow: none !important;
+        opacity: 1 !important;
+        visibility: visible !important;
     }
     
-    /* Заголовки */
-    h1, h2, h3, h4, h5, h6,
-    .stMarkdown, .stMarkdown p, .stCaption {
-        color: #000000 !important;
-        -webkit-text-fill-color: #000000 !important;
-    }
-    
-    /* Кружки радио — белые с серой обводкой */
+    /* === КРУЖОК РАДИО-КНОПКИ — БЕЛЫЙ С СЕРОЙ ОБВОДКОЙ === */
     div[role="radiogroup"] > label [data-baseweb="radio"] > div:first-child,
     div[role="radiogroup"] > label > div:first-child > div:first-child {
         background-color: #ffffff !important;
         border: 2px solid #b0b8c1 !important;
         border-radius: 50% !important;
+        width: 20px !important;
+        height: 20px !important;
     }
     
-    /* Поле комментария */
+    /* === ПОЛЕ КОММЕНТАРИЯ === */
     .stTextArea textarea {
-        color: #000000 !important;
-        -webkit-text-fill-color: #000000 !important;
+        color: #1a1a1a !important;
+        -webkit-text-fill-color: #1a1a1a !important;
         background-color: #ffffff !important;
+        font-size: 1rem !important;
+    }
+    .stTextArea textarea::placeholder {
+        color: #999999 !important;
+        -webkit-text-fill-color: #999999 !important;
     }
     
-    /* Раскрывающийся блок */
-    div[data-testid="stExpander"] {
-        background-color: #e8f4ff !important;
-        border: 2px solid #4a90e2 !important;
-        border-radius: 12px !important;
-        overflow: hidden !important;
-    }
-    div[data-testid="stExpander"] summary {
-        background-color: #e8f4ff !important;
-        padding: 16px !important;
-        cursor: pointer !important;
-    }
-    div[data-testid="stExpander"] summary * {
-        color: #1a5fb4 !important;
-        -webkit-text-fill-color: #1a5fb4 !important;
-        font-weight: 700 !important;
-    }
-    
-    /* Мобильная адаптация */
+    /* === МОБИЛЬНАЯ АДАПТАЦИЯ === */
     @media (max-width: 768px) {
         .block-container {
             padding-left: 1rem !important;
             padding-right: 1rem !important;
             padding-top: 1rem !important;
         }
-        h2 { font-size: 1.35rem !important; line-height: 1.3 !important; }
+        h2 { 
+            font-size: 1.35rem !important; 
+            line-height: 1.3 !important;
+        }
+        div[role="radiogroup"] > label {
+            padding: 14px 14px !important;
+        }
+        div[role="radiogroup"] > label,
+        div[role="radiogroup"] > label * {
+            font-size: 0.98rem !important;
+        }
+        div[data-testid="stExpander"] summary {
+            padding: 12px 14px !important;
+        }
+    }
+    
+    /* === ОТКЛЮЧАЕМ ТЁМНУЮ ТЕМУ ДЛЯ RADIO === */
+    @media (prefers-color-scheme: dark) {
+        div[role="radiogroup"] > label,
+        div[role="radiogroup"] > label *,
+        div[role="radiogroup"] > label p,
+        div[role="radiogroup"] > label span {
+            color: #1a1a1a !important;
+            -webkit-text-fill-color: #1a1a1a !important;
+            background-color: transparent !important;
+        }
+        div[role="radiogroup"] > label {
+            background-color: #ffffff !important;
+        }
     }
     </style>
 """, unsafe_allow_html=True)
@@ -262,7 +255,7 @@ def save_results(answers, comments):
     else:
         df_new.to_csv(csv_file, mode='w', header=True, index=False, encoding='utf-8-sig')
 
-# Основной интерфейс
+# Основной интерфейс — одна колонка
 if current_step <= total_steps:
     q_data = questions[current_step - 1]
     
@@ -271,12 +264,12 @@ if current_step <= total_steps:
     st.markdown(f"## **{q_data['title']}**")
     st.caption("Выберите один ответ")
     
-    # Раскрывающийся блок с описанием
+    # Раскрывающийся блок с описанием игры (тонкая чёрная рамка)
     if q_data["description"]:
         with st.expander("📖  Нажмите, чтобы прочитать описание игры", expanded=False):
             st.markdown(q_data["description"])
     
-    # Радио-кнопки
+    # Радио-кнопки с ответами
     previous_choice = st.session_state.answers.get(f"q_{current_step}")
     if previous_choice in q_data["options"]:
         default_index = q_data["options"].index(previous_choice)
@@ -300,14 +293,14 @@ if current_step <= total_steps:
         height=100
     )
     
-    # Картинка
+    # Картинка сразу под комментарием
     image_path = q_data["image"]
     if os.path.exists(image_path):
         st.image(image_path, use_container_width=True)
     else:
         st.image("https://cdn.pixabay.com/photo/2017/01/06/19/15/soap-1958683_1280.jpg", use_container_width=True)
     
-    # Кнопки навигации
+    # Кнопки навигации внизу
     col_prev, col_next = st.columns([1, 1])
     with col_prev:
         if st.button("← Назад", disabled=(current_step == 1), use_container_width=True):
