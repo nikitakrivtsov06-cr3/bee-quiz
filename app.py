@@ -8,7 +8,7 @@ st.set_page_config(page_title="Sunday Quiz", layout="wide")
 # CSS для красивого оформления (оптимизирован под мобильные)
 st.markdown("""
     <style>
-    /* === ПРИНУДИТЕЛЬНО СВЕТЛАЯ ТЕМА ДЛЯ ВСЕГО ПРИЛОЖЕНИЯ === */
+    /* === ПРИНУДИТЕЛЬНО СВЕТЛАЯ ТЕМА === */
     :root, html, body, .stApp {
         color-scheme: light !important;
         --text-color: #1a1a1a !important;
@@ -79,7 +79,7 @@ st.markdown("""
         background-color: #fff8f8 !important;
     }
     
-    /* ТЕКСТ ОТВЕТОВ — ТЁМНЫЙ */
+    /* ⚠️ ТЕКСТ ОТВЕТОВ — широкий селектор, чтобы точно сработало */
     div[role="radiogroup"] > label,
     div[role="radiogroup"] > label *,
     div[role="radiogroup"] > label p,
@@ -144,11 +144,11 @@ st.markdown("""
             font-size: 0.98rem !important;
         }
         div[data-testid="stExpander"] summary {
-            padding: 12px 14px !important;
+            padding: 14px !important;
         }
     }
     
-    /* === ОТКЛЮЧАЕМ ТЁМНУЮ ТЕМУ ДЛЯ RADIO === */
+    /* === ЗАЩИТА ОТ ТЁМНОЙ ТЕМЫ БРАУЗЕРА === */
     @media (prefers-color-scheme: dark) {
         div[role="radiogroup"] > label,
         div[role="radiogroup"] > label *,
@@ -264,7 +264,7 @@ if current_step <= total_steps:
     st.markdown(f"## **{q_data['title']}**")
     st.caption("Выберите один ответ")
     
-    # Раскрывающийся блок с описанием игры (тонкая чёрная рамка)
+    # Раскрывающийся блок с описанием игры
     if q_data["description"]:
         with st.expander("📖  Нажмите, чтобы прочитать описание игры", expanded=False):
             st.markdown(q_data["description"])
