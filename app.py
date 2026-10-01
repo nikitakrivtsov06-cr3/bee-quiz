@@ -4,10 +4,61 @@ import io
 import pandas as pd
 from datetime import datetime
 from openpyxl.styles import Font, Alignment, PatternFill
+import gspread
+from google.oauth2.service_account import Credentials
 
 st.set_page_config(page_title="Sunday Quiz", layout="wide")
 
-# CSS для красивого оформления (упрощённый — тема задаётся через .streamlit/config.toml)
+# --- ПОДКЛЮЧЕНИЕ К GOOGLE SHEETS ---
+@st.cache_resource
+def get_gsheets_client():
+    """Авторизуется через сервисный аккаунт и возвращает клиент gspread."""
+    creds_dict = dict(st.secrets["connections"]["gsheets"]["credentials"])
+    scopes = [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive",
+    ]
+    creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+    client = gspread.authorize(creds)
+    return client
+
+def get_worksheet():
+    """Возвращает первый лист Google Таблицы."""
+    client = get_gsheets_client()
+    spreadsheet_url = st.secrets["connections"]["gsheets"]["spreadsheet"]
+    sheet = client.open_by_url(spreadsheet_url).sheet1
+    return sheet
+
+def save_to_gsheets(answers, comments):
+    """Сохраняет ответы пользователя в Google Sheets."""
+    try:
+        sheet = get_worksheet()
+        row = [
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            answers.get("q_1", ""),
+            comments.get("comment_1", ""),
+            answers.get("q_2", ""),
+            comments.get("comment_2", ""),
+            answers.get("q_3", ""),
+            comments.get("comment_3", ""),
+        ]
+        sheet.append_row(row, value_input_option="USER_ENTERED")
+        return True
+    except Exception as e:
+        st.error(f"Ошибка сохранения в Google Sheets: {e}")
+        return False
+
+def read_from_gsheets():
+    """Читает все данные из Google Sheets в DataFrame."""
+    try:
+        sheet = get_worksheet()
+        data = sheet.get_all_records()
+        return pd.DataFrame(data)
+    except Exception as e:
+        st.error(f"Ошибка чтения из Google Sheets: {e}")
+        return pd.DataFrame()
+
+# --- CSS ---
 st.markdown("""
     <style>
     .stApp { 
@@ -18,7 +69,6 @@ st.markdown("""
         color: #1a1a1a !important;
     }
     
-    /* === РАСКРЫВАЮЩИЙСЯ БЛОК "ОПИСАНИЕ ИГРЫ" — тонкая чёрная рамка === */
     div[data-testid="stExpander"] {
         background-color: #ffffff !important;
         border: 1px solid #1a1a1a !important;
@@ -41,7 +91,6 @@ st.markdown("""
         font-size: 1rem !important;
     }
     
-    /* === РАДИО-КНОПКИ === */
     div[role="radiogroup"] {
         gap: 10px !important;
     }
@@ -71,14 +120,12 @@ st.markdown("""
         cursor: pointer !important;
     }
     
-    /* === КРУЖОК РАДИО-КНОПКИ — БЕЛЫЙ С СЕРОЙ ОБВОДКОЙ === */
     div[role="radiogroup"] > label > div:first-child > div:first-child {
         background-color: #ffffff !important;
         border: 2px solid #b0b8c1 !important;
         border-radius: 50% !important;
     }
     
-    /* === ПОЛЕ КОММЕНТАРИЯ === */
     .stTextArea textarea {
         color: #1a1a1a !important;
         -webkit-text-fill-color: #1a1a1a !important;
@@ -90,7 +137,6 @@ st.markdown("""
         -webkit-text-fill-color: #999999 !important;
     }
     
-    /* === МОБИЛЬНАЯ АДАПТАЦИЯ === */
     @media (max-width: 768px) {
         .block-container {
             padding-left: 1rem !important;
@@ -105,7 +151,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Инициализация состояния
+# --- ИНИЦИАЛИЗАЦИЯ ---
 if 'step' not in st.session_state:
     st.session_state.step = 1
 if 'answers' not in st.session_state:
@@ -113,7 +159,7 @@ if 'answers' not in st.session_state:
 if 'comments' not in st.session_state:
     st.session_state.comments = {}
 
-# Вопросы
+# --- ВОПРОСЫ ---
 questions = [
     {
         "title": "Как вам концепция игры про автоматизацию улья?",
@@ -181,67 +227,39 @@ questions = [
 total_steps = len(questions)
 current_step = st.session_state.step
 
-# Функция сохранения результатов в CSV
-def save_results(answers, comments):
-    csv_file = "results.csv"
-    data = {"Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-    for idx, q in enumerate(questions, start=1):
-        data[f"Шаг {idx} (Ответ)"] = answers.get(f"q_{idx}", "")
-        data[f"Шаг {idx} (Комментарий)"] = comments.get(f"comment_{idx}", "")
-    
-    df_new = pd.DataFrame([data])
-    if os.path.exists(csv_file):
-        df_new.to_csv(csv_file, mode='a', header=False, index=False, encoding='utf-8-sig')
-    else:
-        df_new.to_csv(csv_file, mode='w', header=True, index=False, encoding='utf-8-sig')
-
-# Функция создания красивого Excel-файла
+# --- ФУНКЦИЯ ДЛЯ EXCEL ---
 def to_excel(df):
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         df.to_excel(writer, index=False, sheet_name='Ответы')
         worksheet = writer.sheets['Ответы']
-        
-        # === Стилизация заголовков ===
         header_font = Font(bold=True, color='FFFFFF', size=11)
         header_fill = PatternFill(start_color='FF4B4B', end_color='FF4B4B', fill_type='solid')
         header_align = Alignment(horizontal='center', vertical='center', wrap_text=True)
-        
         for cell in worksheet[1]:
             cell.font = header_font
             cell.fill = header_fill
             cell.alignment = header_align
-        
-        # Высота строки заголовка
         worksheet.row_dimensions[1].height = 30
-        
-        # === Автоширина колонок ===
         for column in worksheet.columns:
             max_length = 0
             column_letter = column[0].column_letter
             for cell in column:
                 try:
                     if cell.value:
-                        # Учитываем переносы строк в комментариях
                         cell_len = max(len(str(line)) for line in str(cell.value).split('\n'))
                         max_length = max(max_length, cell_len)
                 except:
                     pass
-            # Ограничиваем ширину, чтобы не растянуть слишком сильно
             adjusted_width = min(max_length + 3, 55)
             worksheet.column_dimensions[column_letter].width = adjusted_width
-        
-        # === Закрепляем шапку, чтобы при прокрутке она оставалась на месте ===
         worksheet.freeze_panes = 'A2'
-        
-        # === Обтекание текста во всех ячейках + выравнивание по верху ===
         for row in worksheet.iter_rows(min_row=2):
             for cell in row:
                 cell.alignment = Alignment(vertical='top', wrap_text=True)
-    
     return output.getvalue()
 
-# Основной интерфейс — одна колонка
+# --- ОСНОВНОЙ ИНТЕРФЕЙС ---
 if current_step <= total_steps:
     q_data = questions[current_step - 1]
     
@@ -291,8 +309,11 @@ if current_step <= total_steps:
         if st.button("Далее →", type="primary", disabled=(selected_option is None), use_container_width=True):
             st.session_state.answers[f"q_{current_step}"] = selected_option
             st.session_state.comments[f"comment_{current_step}"] = comment
+            
             if current_step == total_steps:
-                save_results(st.session_state.answers, st.session_state.comments)
+                if save_to_gsheets(st.session_state.answers, st.session_state.comments):
+                    st.success("Ответы сохранены!")
+            
             st.session_state.step += 1
             st.rerun()
 
@@ -314,7 +335,7 @@ else:
     st.write("")
     st.write("")
 
-# --- СЕКРЕТНАЯ АДМИН-ПАНЕЛЬ ---
+# --- АДМИН-ПАНЕЛЬ ---
 query_params = st.query_params
 is_admin = query_params.get("admin") == "true"
 
@@ -329,42 +350,27 @@ if is_admin:
             st.success("Доступ разрешён")
             st.subheader("Сохранённые ответы:")
             
-            if os.path.exists("results.csv"):
-                df = pd.read_csv("results.csv", encoding='utf-8-sig')
+            df = read_from_gsheets()
+            if df is not None and not df.empty:
                 st.dataframe(df)
                 st.caption(f"Всего ответов: **{len(df)}**")
                 
-                # === КНОПКИ СКАЧИВАНИЯ ===
                 st.write("**Скачать результаты:**")
-                col_csv, col_xlsx = st.columns(2)
-                
-                # Имя файла с датой
                 date_str = datetime.now().strftime("%Y-%m-%d_%H-%M")
-                
-                with col_csv:
-                    st.download_button(
-                        "📄 CSV",
-                        data=df.to_csv(index=False, encoding='utf-8-sig'),
-                        file_name=f"results_{date_str}.csv",
-                        mime="text/csv",
-                        use_container_width=True
-                    )
-                
-                with col_xlsx:
-                    st.download_button(
-                        "📊 Excel",
-                        data=to_excel(df),
-                        file_name=f"results_{date_str}.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        use_container_width=True
-                    )
-                
-                st.write("---")
-                st.caption("⚠️ Опасная зона")
-                if st.button("🗑️ Очистить все результаты", use_container_width=True):
-                    os.remove("results.csv")
-                    st.success("Все результаты удалены!")
-                    st.rerun()
+                st.download_button(
+                    "📊 Excel",
+                    data=to_excel(df),
+                    file_name=f"results_{date_str}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True
+                )
+                st.download_button(
+                    "📄 CSV",
+                    data=df.to_csv(index=False, encoding='utf-8-sig'),
+                    file_name=f"results_{date_str}.csv",
+                    mime="text/csv",
+                    use_container_width=True
+                )
             else:
                 st.info("Ответов пока нет.")
         elif admin_pass:
