@@ -255,14 +255,25 @@ if current_step <= total_steps:
             st.rerun()
 
 else:
+    # === ФИНАЛЬНЫЙ ЭКРАН — ВЫРОВНЕН ПО ЦЕНТРУ ===
     st.balloons()
-    st.success("Спасибо за прохождение опроса!")
     
-    if st.button("Пройти заново", type="primary", use_container_width=True):
-        st.session_state.step = 1
-        st.session_state.answers = {}
-        st.session_state.comments = {}
-        st.rerun()
+    st.write("")
+    st.write("")
+    
+    # Центрируем содержимое через три колонки
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.success("🎉 Спасибо за прохождение опроса!")
+        st.write("")
+        if st.button("Пройти заново", type="primary", use_container_width=True):
+            st.session_state.step = 1
+            st.session_state.answers = {}
+            st.session_state.comments = {}
+            st.rerun()
+    
+    st.write("")
+    st.write("")
 
 # --- СЕКРЕТНАЯ АДМИН-ПАНЕЛЬ ---
 query_params = st.query_params
