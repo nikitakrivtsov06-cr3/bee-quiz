@@ -5,26 +5,15 @@ from datetime import datetime
 
 st.set_page_config(page_title="Sunday Quiz", layout="wide")
 
-# CSS для красивого оформления (оптимизирован под мобильные)
+# CSS для красивого оформления (упрощённый — тема задаётся через .streamlit/config.toml)
 st.markdown("""
     <style>
-    /* === ПРИНУДИТЕЛЬНО СВЕТЛАЯ ТЕМА === */
-    :root, html, body, .stApp {
-        color-scheme: light !important;
-        --text-color: #1a1a1a !important;
-        --primary-text-color: #1a1a1a !important;
-        --secondary-text-color: #444444 !important;
-    }
     .stApp { 
-        background-color: #f4f8fb !important;
+        background-color: #f4f8fb !important; 
     }
-    
-    /* === ЗАГОЛОВКИ И ОБЩИЙ ТЕКСТ === */
     h1, h2, h3, h4, h5, h6,
-    .stMarkdown, .stMarkdown p, .stCaption,
-    .stTextArea label {
+    .stMarkdown, .stMarkdown p, .stCaption {
         color: #1a1a1a !important;
-        -webkit-text-fill-color: #1a1a1a !important;
     }
     
     /* === РАСКРЫВАЮЩИЙСЯ БЛОК "ОПИСАНИЕ ИГРЫ" — тонкая чёрная рамка === */
@@ -46,21 +35,14 @@ st.markdown("""
     }
     div[data-testid="stExpander"] summary * {
         color: #1a1a1a !important;
-        -webkit-text-fill-color: #1a1a1a !important;
         font-weight: 600 !important;
         font-size: 1rem !important;
-    }
-    div[data-testid="stExpander"] summary svg {
-        fill: #1a1a1a !important;
-        color: #1a1a1a !important;
     }
     
     /* === РАДИО-КНОПКИ === */
     div[role="radiogroup"] {
         gap: 10px !important;
     }
-    
-    /* Плашка ответа */
     div[role="radiogroup"] > label {
         background-color: #ffffff !important;
         padding: 14px 18px !important;
@@ -70,7 +52,6 @@ st.markdown("""
         width: 100% !important;
         cursor: pointer !important;
         transition: all 0.2s ease !important;
-        -webkit-tap-highlight-color: rgba(255, 75, 75, 0.1) !important;
         display: flex !important;
         align-items: center !important;
     }
@@ -78,39 +59,22 @@ st.markdown("""
         border-color: #ff4b4b !important;
         background-color: #fff8f8 !important;
     }
-    
-    /* ⚠️ ТЕКСТ ОТВЕТОВ — широкий селектор, чтобы точно сработало */
+    /* Текст ответов — тёмный и кликабельный */
     div[role="radiogroup"] > label,
     div[role="radiogroup"] > label *,
     div[role="radiogroup"] > label p,
-    div[role="radiogroup"] > label span,
-    div[role="radiogroup"] > label div,
-    div[role="radiogroup"] > label label,
-    div[role="radiogroup"] > label [data-testid],
-    div[role="radiogroup"] > label [data-testid] *,
-    div[role="radiogroup"] > label [data-testid="stMarkdownContainer"],
-    div[role="radiogroup"] > label [data-testid="stMarkdownContainer"] p,
-    div[role="radiogroup"] > label [data-baseweb="radio"] *,
-    div[role="radiogroup"] > label [class*="Text"],
-    div[role="radiogroup"] > label [class*="text"] {
+    div[role="radiogroup"] > label span {
         color: #1a1a1a !important;
         -webkit-text-fill-color: #1a1a1a !important;
         font-size: 1rem !important;
         cursor: pointer !important;
-        user-select: none !important;
-        text-shadow: none !important;
-        opacity: 1 !important;
-        visibility: visible !important;
     }
     
     /* === КРУЖОК РАДИО-КНОПКИ — БЕЛЫЙ С СЕРОЙ ОБВОДКОЙ === */
-    div[role="radiogroup"] > label [data-baseweb="radio"] > div:first-child,
     div[role="radiogroup"] > label > div:first-child > div:first-child {
         background-color: #ffffff !important;
         border: 2px solid #b0b8c1 !important;
         border-radius: 50% !important;
-        width: 20px !important;
-        height: 20px !important;
     }
     
     /* === ПОЛЕ КОММЕНТАРИЯ === */
@@ -135,31 +99,6 @@ st.markdown("""
         h2 { 
             font-size: 1.35rem !important; 
             line-height: 1.3 !important;
-        }
-        div[role="radiogroup"] > label {
-            padding: 14px 14px !important;
-        }
-        div[role="radiogroup"] > label,
-        div[role="radiogroup"] > label * {
-            font-size: 0.98rem !important;
-        }
-        div[data-testid="stExpander"] summary {
-            padding: 14px !important;
-        }
-    }
-    
-    /* === ЗАЩИТА ОТ ТЁМНОЙ ТЕМЫ БРАУЗЕРА === */
-    @media (prefers-color-scheme: dark) {
-        div[role="radiogroup"] > label,
-        div[role="radiogroup"] > label *,
-        div[role="radiogroup"] > label p,
-        div[role="radiogroup"] > label span {
-            color: #1a1a1a !important;
-            -webkit-text-fill-color: #1a1a1a !important;
-            background-color: transparent !important;
-        }
-        div[role="radiogroup"] > label {
-            background-color: #ffffff !important;
         }
     }
     </style>
