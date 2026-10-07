@@ -12,7 +12,6 @@ st.set_page_config(page_title="Sunday Quiz", layout="wide")
 # --- ПОДКЛЮЧЕНИЕ К GOOGLE SHEETS ---
 @st.cache_resource
 def get_gsheets_client():
-    """Авторизуется через сервисный аккаунт и возвращает клиент gspread."""
     creds_dict = dict(st.secrets["connections"]["gsheets"]["credentials"])
     scopes = [
         "https://www.googleapis.com/auth/spreadsheets",
@@ -23,14 +22,12 @@ def get_gsheets_client():
     return client
 
 def get_worksheet():
-    """Возвращает первый лист Google Таблицы."""
     client = get_gsheets_client()
     spreadsheet_url = st.secrets["connections"]["gsheets"]["spreadsheet"]
     sheet = client.open_by_url(spreadsheet_url).sheet1
     return sheet
 
 def save_to_gsheets(answers, comments):
-    """Сохраняет ответы пользователя в Google Sheets."""
     try:
         sheet = get_worksheet()
         row = [
@@ -49,7 +46,6 @@ def save_to_gsheets(answers, comments):
         return False
 
 def read_from_gsheets():
-    """Читает все данные из Google Sheets в DataFrame."""
     try:
         sheet = get_worksheet()
         data = sheet.get_all_records()
@@ -58,100 +54,7 @@ def read_from_gsheets():
         st.error(f"Ошибка чтения из Google Sheets: {e}")
         return pd.DataFrame()
 
-# --- CSS ---
-st.markdown("""
-    <style>
-    .stApp { 
-        background-color: #f4f8fb !important; 
-    }
-    h1, h2, h3, h4, h5, h6,
-    .stMarkdown, .stMarkdown p, .stCaption {
-        color: #1a1a1a !important;
-    }
-    
-    div[data-testid="stExpander"] {
-        background-color: #ffffff !important;
-        border: 1px solid #1a1a1a !important;
-        border-radius: 8px !important;
-        overflow: hidden !important;
-        box-shadow: none !important;
-    }
-    div[data-testid="stExpander"] summary {
-        background-color: #ffffff !important;
-        padding: 14px 16px !important;
-        cursor: pointer !important;
-        list-style: none !important;
-    }
-    div[data-testid="stExpander"] summary:hover {
-        background-color: #f5f5f5 !important;
-    }
-    div[data-testid="stExpander"] summary * {
-        color: #1a1a1a !important;
-        font-weight: 600 !important;
-        font-size: 1rem !important;
-    }
-    
-    div[role="radiogroup"] {
-        gap: 10px !important;
-    }
-    div[role="radiogroup"] > label {
-        background-color: #ffffff !important;
-        padding: 14px 18px !important;
-        border-radius: 12px !important;
-        border: 1px solid #e1e8ed !important;
-        box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.03) !important;
-        width: 100% !important;
-        cursor: pointer !important;
-        transition: all 0.2s ease !important;
-        display: flex !important;
-        align-items: center !important;
-    }
-    div[role="radiogroup"] > label:hover {
-        border-color: #ff4b4b !important;
-        background-color: #fff8f8 !important;
-    }
-    div[role="radiogroup"] > label,
-    div[role="radiogroup"] > label *,
-    div[role="radiogroup"] > label p,
-    div[role="radiogroup"] > label span {
-        color: #1a1a1a !important;
-        -webkit-text-fill-color: #1a1a1a !important;
-        font-size: 1rem !important;
-        cursor: pointer !important;
-    }
-    
-    div[role="radiogroup"] > label > div:first-child > div:first-child {
-        background-color: #ffffff !important;
-        border: 2px solid #b0b8c1 !important;
-        border-radius: 50% !important;
-    }
-    
-    .stTextArea textarea {
-        color: #1a1a1a !important;
-        -webkit-text-fill-color: #1a1a1a !important;
-        background-color: #ffffff !important;
-        font-size: 1rem !important;
-    }
-    .stTextArea textarea::placeholder {
-        color: #999999 !important;
-        -webkit-text-fill-color: #999999 !important;
-    }
-    
-    @media (max-width: 768px) {
-        .block-container {
-            padding-left: 1rem !important;
-            padding-right: 1rem !important;
-            padding-top: 1rem !important;
-        }
-        h2 { 
-            font-size: 1.35rem !important; 
-            line-height: 1.3 !important;
-        }
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-# --- ИНИЦИАЛИЗАЦИЯ ---
+# --- ИНИЦИАЛИЗАЦИЯ СОСТОЯНИЯ ---
 if 'step' not in st.session_state:
     st.session_state.step = 1
 if 'answers' not in st.session_state:
@@ -185,7 +88,8 @@ questions = [
             "Скорее нет, чем да",
             "Вообще нет"
         ],
-        "image": "bees.jpg"
+        "image": "bees.jpg",
+        "background": "https://raw.githubusercontent.com/nikitakrivtsov06-cr3/bee-quiz/main/bg_bees.jpg"
     },
     {
         "title": "Как вам концепция квеста в лабиринте на два игрока?",
@@ -203,7 +107,8 @@ questions = [
             "Скорее нет, чем да",
             "Вообще нет"
         ],
-        "image": "maze.jpg"
+        "image": "maze.jpg",
+        "background": "https://raw.githubusercontent.com/nikitakrivtsov06-cr3/bee-quiz/main/bg_maze.jpg"
     },
     {
         "title": "Как вам концепция экшен-рогалика с вселением в тела врагов?",
@@ -220,12 +125,135 @@ questions = [
             "Скорее нет, чем да",
             "Вообще нет"
         ],
-        "image": "soul.jpg"
+        "image": "soul.jpg",
+        "background": "https://raw.githubusercontent.com/nikitakrivtsov06-cr3/bee-quiz/main/bg_soul.jpg"
     }
 ]
 
 total_steps = len(questions)
 current_step = st.session_state.step
+
+# --- ВЫБОР ФОНА ПО ШАГУ ---
+if current_step <= total_steps:
+    current_bg = questions[current_step - 1]["background"]
+else:
+    # Фон для финального экрана
+    current_bg = "https://raw.githubusercontent.com/nikitakrivtsov06-cr3/bee-quiz/main/bg_final.jpg"
+
+# --- CSS С ДИНАМИЧЕСКИМ ФОНОМ ---
+st.markdown(f"""
+    <style>
+    .stApp {{ 
+        background-image: url("{current_bg}") !important;
+        background-size: cover !important;
+        background-position: center !important;
+        background-repeat: no-repeat !important;
+        background-attachment: fixed !important;
+    }}
+    
+    /* Полупрозрачная светлая подложка, чтобы текст читался поверх картинки */
+    .stApp::before {{
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(255, 255, 255, 0.80);
+        z-index: -1;
+        pointer-events: none;
+    }}
+    
+    h1, h2, h3, h4, h5, h6,
+    .stMarkdown, .stMarkdown p, .stCaption {{
+        color: #1a1a1a !important;
+    }}
+    
+    /* === РАСКРЫВАЮЩИЙСЯ БЛОК "ОПИСАНИЕ ИГРЫ" — тонкая чёрная рамка === */
+    div[data-testid="stExpander"] {{
+        background-color: rgba(255, 255, 255, 0.95) !important;
+        border: 1px solid #1a1a1a !important;
+        border-radius: 8px !important;
+        overflow: hidden !important;
+        box-shadow: none !important;
+    }}
+    div[data-testid="stExpander"] summary {{
+        background-color: rgba(255, 255, 255, 0.95) !important;
+        padding: 14px 16px !important;
+        cursor: pointer !important;
+        list-style: none !important;
+    }}
+    div[data-testid="stExpander"] summary:hover {{
+        background-color: #f5f5f5 !important;
+    }}
+    div[data-testid="stExpander"] summary * {{
+        color: #1a1a1a !important;
+        font-weight: 600 !important;
+        font-size: 1rem !important;
+    }}
+    
+    /* === РАДИО-КНОПКИ === */
+    div[role="radiogroup"] {{
+        gap: 10px !important;
+    }}
+    div[role="radiogroup"] > label {{
+        background-color: rgba(255, 255, 255, 0.95) !important;
+        padding: 14px 18px !important;
+        border-radius: 12px !important;
+        border: 1px solid #e1e8ed !important;
+        box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.05) !important;
+        width: 100% !important;
+        cursor: pointer !important;
+        transition: all 0.2s ease !important;
+        display: flex !important;
+        align-items: center !important;
+    }}
+    div[role="radiogroup"] > label:hover {{
+        border-color: #ff4b4b !important;
+        background-color: #fff8f8 !important;
+    }}
+    div[role="radiogroup"] > label,
+    div[role="radiogroup"] > label *,
+    div[role="radiogroup"] > label p,
+    div[role="radiogroup"] > label span {{
+        color: #1a1a1a !important;
+        -webkit-text-fill-color: #1a1a1a !important;
+        font-size: 1rem !important;
+        cursor: pointer !important;
+    }}
+    
+    div[role="radiogroup"] > label > div:first-child > div:first-child {{
+        background-color: #ffffff !important;
+        border: 2px solid #b0b8c1 !important;
+        border-radius: 50% !important;
+    }}
+    
+    /* === ПОЛЕ КОММЕНТАРИЯ === */
+    .stTextArea textarea {{
+        color: #1a1a1a !important;
+        -webkit-text-fill-color: #1a1a1a !important;
+        background-color: rgba(255, 255, 255, 0.95) !important;
+        font-size: 1rem !important;
+    }}
+    .stTextArea textarea::placeholder {{
+        color: #999999 !important;
+        -webkit-text-fill-color: #999999 !important;
+    }}
+    
+    /* === МОБИЛЬНАЯ АДАПТАЦИЯ === */
+    @media (max-width: 768px) {{
+        .block-container {{
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+            padding-top: 1rem !important;
+        }}
+        h2 {{ 
+            font-size: 1.35rem !important; 
+            line-height: 1.3 !important;
+        }}
+    }}
+    </style>
+""", unsafe_allow_html=True)
 
 # --- ФУНКЦИЯ ДЛЯ EXCEL ---
 def to_excel(df):
