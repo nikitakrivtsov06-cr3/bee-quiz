@@ -100,9 +100,9 @@ questions = [
         ],
         "image": "bees.jpg",
         "background": "https://raw.githubusercontent.com/nikitakrivtsov06-cr3/bee-quiz/main/bg_bees.jpg",
-        "text_color": "#1a1a1a",
-        "card_text": "#1a1a1a",
-        "heading_shadow": "none"
+        "text_color": "#ffffff",
+        "card_text": "#ffffff",
+        "heading_shadow": "0 2px 8px rgba(0, 0, 0, 0.85)"
     },
     {
         "title": "Как вам концепция квеста в лабиринте на два игрока?",
