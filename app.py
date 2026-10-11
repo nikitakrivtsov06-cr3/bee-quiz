@@ -91,9 +91,7 @@ questions = [
         "image": "bees.jpg",
         "background": "https://raw.githubusercontent.com/nikitakrivtsov06-cr3/bee-quiz/main/bg_bees.jpg",
         "text_color": "#1a1a1a",
-        "card_bg": "rgba(255, 255, 255, 0.95)",
         "card_text": "#1a1a1a",
-        "card_border": "rgba(200, 210, 220, 1)",
         "heading_shadow": "none"
     },
     {
@@ -115,9 +113,7 @@ questions = [
         "image": "maze.jpg",
         "background": "https://raw.githubusercontent.com/nikitakrivtsov06-cr3/bee-quiz/main/bg_maze.jpg",
         "text_color": "#ffffff",
-        "card_bg": "rgba(15, 22, 40, 0.85)",
         "card_text": "#ffffff",
-        "card_border": "rgba(255, 255, 255, 0.35)",
         "heading_shadow": "0 2px 8px rgba(0, 0, 0, 0.85)"
     },
     {
@@ -138,9 +134,7 @@ questions = [
         "image": "soul.jpg",
         "background": "https://raw.githubusercontent.com/nikitakrivtsov06-cr3/bee-quiz/main/bg_soul.jpg",
         "text_color": "#ffffff",
-        "card_bg": "rgba(25, 15, 35, 0.85)",
         "card_text": "#ffffff",
-        "card_border": "rgba(255, 255, 255, 0.35)",
         "heading_shadow": "0 2px 8px rgba(0, 0, 0, 0.85)"
     }
 ]
@@ -153,16 +147,12 @@ if current_step <= total_steps:
     q_current = questions[current_step - 1]
     current_bg = q_current["background"]
     text_color = q_current["text_color"]
-    card_bg = q_current["card_bg"]
     card_text = q_current["card_text"]
-    card_border = q_current["card_border"]
     heading_shadow = q_current["heading_shadow"]
 else:
     current_bg = "https://raw.githubusercontent.com/nikitakrivtsov06-cr3/bee-quiz/main/bg_final.jpg"
     text_color = "#1a1a1a"
-    card_bg = "rgba(255, 255, 255, 0.95)"
     card_text = "#1a1a1a"
-    card_border = "rgba(200, 210, 220, 1)"
     heading_shadow = "none"
 
 # --- CSS С ДИНАМИЧЕСКИМ ФОНОМ И ЦВЕТАМИ ---
@@ -239,34 +229,32 @@ st.markdown(f"""
         text-shadow: none !important;
     }}
     
-    /* === РАДИО-КНОПКИ === */
+    /* === РАДИО-КНОПКИ — БЕЗ ПЛАШЕК === */
     div[role="radiogroup"] {{
-        gap: 10px !important;
+        gap: 6px !important;
     }}
     
-    /* Плашка ответа */
+    /* Убираем фон, рамку, тень — оставляем чистые радио-кнопки */
     div[role="radiogroup"] > label,
     div[role="radiogroup"] label {{
-        background: {card_bg} !important;
-        background-color: {card_bg} !important;
-        padding: 14px 18px !important;
-        border-radius: 12px !important;
-        border: 1.5px solid {card_border} !important;
-        box-shadow: 0px 3px 10px rgba(0, 0, 0, 0.25) !important;
+        background: transparent !important;
+        background-color: transparent !important;
+        padding: 8px 4px !important;
+        border: none !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
         width: 100% !important;
         cursor: pointer !important;
-        transition: all 0.2s ease !important;
         display: flex !important;
         align-items: center !important;
         opacity: 1 !important;
     }}
     div[role="radiogroup"] > label:hover,
     div[role="radiogroup"] label:hover {{
-        border-color: #ff4b4b !important;
-        box-shadow: 0px 4px 14px rgba(255, 75, 75, 0.4) !important;
+        background-color: rgba(255, 75, 75, 0.08) !important;
     }}
     
-    /* ВЕСЬ ТЕКСТ ВНУТРИ ПЛАШЕК — ЖИРНЫЙ И НУЖНОГО ЦВЕТА */
+    /* ТЕКСТ ВАРИАНТОВ — КРУПНЕЕ И ЖИРНЕЕ */
     div[role="radiogroup"] > label,
     div[role="radiogroup"] > label *,
     div[role="radiogroup"] > label p,
@@ -281,20 +269,23 @@ st.markdown(f"""
     div[role="radiogroup"] label span {{
         color: {card_text} !important;
         -webkit-text-fill-color: {card_text} !important;
-        font-size: 1.05rem !important;
+        font-size: 1.15rem !important;
         font-weight: 800 !important;
         cursor: pointer !important;
         opacity: 1 !important;
         visibility: visible !important;
-        text-shadow: none !important;
+        text-shadow: {heading_shadow} !important;
     }}
     
-    /* Кружок радио-кнопки */
+    /* Кружок радио-кнопки — белый с обводкой */
     div[role="radiogroup"] > label > div:first-child > div:first-child,
     div[role="radiogroup"] label [data-baseweb="radio"] > div:first-child {{
         background-color: rgba(255, 255, 255, 0.95) !important;
         border: 2px solid #b0b8c1 !important;
         border-radius: 50% !important;
+        width: 22px !important;
+        height: 22px !important;
+        margin-right: 10px !important;
     }}
     
     /* === МЕТКА "Комментарий" === */
