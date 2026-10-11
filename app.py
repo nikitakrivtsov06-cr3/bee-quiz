@@ -54,7 +54,7 @@ def read_from_gsheets():
         st.error(f"Ошибка чтения из Google Sheets: {e}")
         return pd.DataFrame()
 
-# --- ИНИЦИАЛИЗАЦИЯ СОСТОЯНИЯ ---
+# --- ИНИЦИАЛИЗАЦИЯ ---
 if 'step' not in st.session_state:
     st.session_state.step = 1
 if 'answers' not in st.session_state:
@@ -63,6 +63,9 @@ if 'comments' not in st.session_state:
     st.session_state.comments = {}
 
 # --- ВОПРОСЫ ---
+# text_color — цвет основного текста (заголовок, подписи)
+# card_bg    — фон плашек радио-кнопок
+# card_text  — цвет текста внутри плашек
 questions = [
     {
         "title": "Как вам концепция игры про автоматизацию улья?",
@@ -89,7 +92,10 @@ questions = [
             "Вообще нет"
         ],
         "image": "bees.jpg",
-        "background": "https://raw.githubusercontent.com/nikitakrivtsov06-cr3/bee-quiz/main/bg_bees.jpg"
+        "background": "https://raw.githubusercontent.com/nikitakrivtsov06-cr3/bee-quiz/main/bg_bees.jpg",
+        "text_color": "#1a1a1a",
+        "card_bg": "rgba(255, 255, 255, 0.95)",
+        "card_text": "#1a1a1a"
     },
     {
         "title": "Как вам концепция квеста в лабиринте на два игрока?",
@@ -108,7 +114,10 @@ questions = [
             "Вообще нет"
         ],
         "image": "maze.jpg",
-        "background": "https://raw.githubusercontent.com/nikitakrivtsov06-cr3/bee-quiz/main/bg_maze.jpg"
+        "background": "https://raw.githubusercontent.com/nikitakrivtsov06-cr3/bee-quiz/main/bg_maze.jpg",
+        "text_color": "#ffffff",
+        "card_bg": "rgba(0, 0, 0, 0.65)",
+        "card_text": "#ffffff"
     },
     {
         "title": "Как вам концепция экшен-рогалика с вселением в тела врагов?",
@@ -126,21 +135,30 @@ questions = [
             "Вообще нет"
         ],
         "image": "soul.jpg",
-        "background": "https://raw.githubusercontent.com/nikitakrivtsov06-cr3/bee-quiz/main/bg_soul.jpg"
+        "background": "https://raw.githubusercontent.com/nikitakrivtsov06-cr3/bee-quiz/main/bg_soul.jpg",
+        "text_color": "#ffffff",
+        "card_bg": "rgba(0, 0, 0, 0.65)",
+        "card_text": "#ffffff"
     }
 ]
 
 total_steps = len(questions)
 current_step = st.session_state.step
 
-# --- ВЫБОР ФОНА ПО ШАГУ ---
+# --- ВЫБОР ФОНА И ЦВЕТОВ ПО ШАГУ ---
 if current_step <= total_steps:
-    current_bg = questions[current_step - 1]["background"]
+    q_current = questions[current_step - 1]
+    current_bg = q_current["background"]
+    text_color = q_current["text_color"]
+    card_bg = q_current["card_bg"]
+    card_text = q_current["card_text"]
 else:
-    # Фон для финального экрана
     current_bg = "https://raw.githubusercontent.com/nikitakrivtsov06-cr3/bee-quiz/main/bg_final.jpg"
+    text_color = "#1a1a1a"
+    card_bg = "rgba(255, 255, 255, 0.95)"
+    card_text = "#1a1a1a"
 
-# --- CSS С ДИНАМИЧЕСКИМ ФОНОМ ---
+# --- CSS С ДИНАМИЧЕСКИМ ФОНОМ И ЦВЕТАМИ ---
 st.markdown(f"""
     <style>
     .stApp {{ 
@@ -151,7 +169,7 @@ st.markdown(f"""
         background-attachment: fixed !important;
     }}
     
-    /* Полупрозрачная светлая подложка, чтобы текст читался поверх картинки */
+    /* Полупрозрачная подложка для читаемости текста */
     .stApp::before {{
         content: "";
         position: fixed;
@@ -159,17 +177,34 @@ st.markdown(f"""
         left: 0;
         width: 100%;
         height: 100%;
-        background-color: rgba(255, 255, 255, 0.80);
+        background-color: rgba(0, 0, 0, 0.15);
         z-index: -1;
         pointer-events: none;
     }}
     
-    h1, h2, h3, h4, h5, h6,
-    .stMarkdown, .stMarkdown p, .stCaption {{
-        color: #1a1a1a !important;
+    /* === ЗАГОЛОВКИ И ТЕКСТ — ДИНАМИЧЕСКИЙ ЦВЕТ + ЖИРНЫЙ === */
+    h1, h2, h3, h4, h5, h6 {{
+        color: {text_color} !important;
+        font-weight: 900 !important;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.35) !important;
+    }}
+    .stMarkdown, .stMarkdown p {{
+        color: {text_color} !important;
+        font-weight: 700 !important;
+    }}
+    .stCaption, [data-testid="stCaptionContainer"] {{
+        color: {text_color} !important;
+        font-weight: 700 !important;
+        opacity: 1 !important;
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4) !important;
+    }}
+    /* Прогресс-бар: текст "шаг X/3" */
+    [data-testid="stCaptionContainer"] p {{
+        color: {text_color} !important;
+        font-weight: 700 !important;
     }}
     
-    /* === РАСКРЫВАЮЩИЙСЯ БЛОК "ОПИСАНИЕ ИГРЫ" — тонкая чёрная рамка === */
+    /* === РАСКРЫВАЮЩИЙСЯ БЛОК "ОПИСАНИЕ ИГРЫ" === */
     div[data-testid="stExpander"] {{
         background-color: rgba(255, 255, 255, 0.95) !important;
         border: 1px solid #1a1a1a !important;
@@ -188,8 +223,16 @@ st.markdown(f"""
     }}
     div[data-testid="stExpander"] summary * {{
         color: #1a1a1a !important;
-        font-weight: 600 !important;
+        font-weight: 700 !important;
         font-size: 1rem !important;
+    }}
+    /* Текст внутри раскрытого описания */
+    div[data-testid="stExpander"] .stMarkdown,
+    div[data-testid="stExpander"] .stMarkdown p,
+    div[data-testid="stExpander"] [data-testid="stMarkdownContainer"] p {{
+        color: #1a1a1a !important;
+        font-weight: 500 !important;
+        text-shadow: none !important;
     }}
     
     /* === РАДИО-КНОПКИ === */
@@ -197,35 +240,47 @@ st.markdown(f"""
         gap: 10px !important;
     }}
     div[role="radiogroup"] > label {{
-        background-color: rgba(255, 255, 255, 0.95) !important;
+        background-color: {card_bg} !important;
         padding: 14px 18px !important;
         border-radius: 12px !important;
-        border: 1px solid #e1e8ed !important;
-        box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.05) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.15) !important;
         width: 100% !important;
         cursor: pointer !important;
         transition: all 0.2s ease !important;
         display: flex !important;
         align-items: center !important;
+        backdrop-filter: blur(4px) !important;
     }}
     div[role="radiogroup"] > label:hover {{
         border-color: #ff4b4b !important;
-        background-color: #fff8f8 !important;
+        background-color: {card_bg} !important;
     }}
+    /* ТЕКСТ ВНУТРИ ПЛАШЕК — ДИНАМИЧЕСКИЙ ЦВЕТ + ЖИРНЫЙ */
     div[role="radiogroup"] > label,
     div[role="radiogroup"] > label *,
     div[role="radiogroup"] > label p,
     div[role="radiogroup"] > label span {{
-        color: #1a1a1a !important;
-        -webkit-text-fill-color: #1a1a1a !important;
-        font-size: 1rem !important;
+        color: {card_text} !important;
+        -webkit-text-fill-color: {card_text} !important;
+        font-size: 1.05rem !important;
+        font-weight: 700 !important;
         cursor: pointer !important;
     }}
     
+    /* Кружок радио-кнопки */
     div[role="radiogroup"] > label > div:first-child > div:first-child {{
-        background-color: #ffffff !important;
+        background-color: rgba(255, 255, 255, 0.9) !important;
         border: 2px solid #b0b8c1 !important;
         border-radius: 50% !important;
+    }}
+    
+    /* === МЕТКА "Комментарий (необязательно)" === */
+    .stTextArea label,
+    .stTextArea label p {{
+        color: {text_color} !important;
+        font-weight: 700 !important;
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4) !important;
     }}
     
     /* === ПОЛЕ КОММЕНТАРИЯ === */
@@ -248,7 +303,7 @@ st.markdown(f"""
             padding-top: 1rem !important;
         }}
         h2 {{ 
-            font-size: 1.35rem !important; 
+            font-size: 1.4rem !important; 
             line-height: 1.3 !important;
         }}
     }}
