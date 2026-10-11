@@ -63,9 +63,6 @@ if 'comments' not in st.session_state:
     st.session_state.comments = {}
 
 # --- ВОПРОСЫ ---
-# text_color — цвет основного текста (заголовок, подписи)
-# card_bg    — фон плашек радио-кнопок
-# card_text  — цвет текста внутри плашек
 questions = [
     {
         "title": "Как вам концепция игры про автоматизацию улья?",
@@ -95,7 +92,9 @@ questions = [
         "background": "https://raw.githubusercontent.com/nikitakrivtsov06-cr3/bee-quiz/main/bg_bees.jpg",
         "text_color": "#1a1a1a",
         "card_bg": "rgba(255, 255, 255, 0.95)",
-        "card_text": "#1a1a1a"
+        "card_text": "#1a1a1a",
+        "card_border": "rgba(200, 210, 220, 1)",
+        "heading_shadow": "none"
     },
     {
         "title": "Как вам концепция квеста в лабиринте на два игрока?",
@@ -116,8 +115,10 @@ questions = [
         "image": "maze.jpg",
         "background": "https://raw.githubusercontent.com/nikitakrivtsov06-cr3/bee-quiz/main/bg_maze.jpg",
         "text_color": "#ffffff",
-        "card_bg": "rgba(0, 0, 0, 0.65)",
-        "card_text": "#ffffff"
+        "card_bg": "rgba(15, 22, 40, 0.85)",
+        "card_text": "#ffffff",
+        "card_border": "rgba(255, 255, 255, 0.35)",
+        "heading_shadow": "0 2px 8px rgba(0, 0, 0, 0.85)"
     },
     {
         "title": "Как вам концепция экшен-рогалика с вселением в тела врагов?",
@@ -137,8 +138,10 @@ questions = [
         "image": "soul.jpg",
         "background": "https://raw.githubusercontent.com/nikitakrivtsov06-cr3/bee-quiz/main/bg_soul.jpg",
         "text_color": "#ffffff",
-        "card_bg": "rgba(0, 0, 0, 0.65)",
-        "card_text": "#ffffff"
+        "card_bg": "rgba(25, 15, 35, 0.85)",
+        "card_text": "#ffffff",
+        "card_border": "rgba(255, 255, 255, 0.35)",
+        "heading_shadow": "0 2px 8px rgba(0, 0, 0, 0.85)"
     }
 ]
 
@@ -152,11 +155,15 @@ if current_step <= total_steps:
     text_color = q_current["text_color"]
     card_bg = q_current["card_bg"]
     card_text = q_current["card_text"]
+    card_border = q_current["card_border"]
+    heading_shadow = q_current["heading_shadow"]
 else:
     current_bg = "https://raw.githubusercontent.com/nikitakrivtsov06-cr3/bee-quiz/main/bg_final.jpg"
     text_color = "#1a1a1a"
     card_bg = "rgba(255, 255, 255, 0.95)"
     card_text = "#1a1a1a"
+    card_border = "rgba(200, 210, 220, 1)"
+    heading_shadow = "none"
 
 # --- CSS С ДИНАМИЧЕСКИМ ФОНОМ И ЦВЕТАМИ ---
 st.markdown(f"""
@@ -169,7 +176,6 @@ st.markdown(f"""
         background-attachment: fixed !important;
     }}
     
-    /* Полупрозрачная подложка для читаемости текста */
     .stApp::before {{
         content: "";
         position: fixed;
@@ -177,34 +183,30 @@ st.markdown(f"""
         left: 0;
         width: 100%;
         height: 100%;
-        background-color: rgba(0, 0, 0, 0.15);
+        background-color: rgba(0, 0, 0, 0.12);
         z-index: -1;
         pointer-events: none;
     }}
     
-    /* === ЗАГОЛОВКИ И ТЕКСТ — ДИНАМИЧЕСКИЙ ЦВЕТ + ЖИРНЫЙ === */
+    /* === ЗАГОЛОВКИ И ПОДПИСИ === */
     h1, h2, h3, h4, h5, h6 {{
         color: {text_color} !important;
         font-weight: 900 !important;
-        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.35) !important;
+        text-shadow: {heading_shadow} !important;
     }}
     .stMarkdown, .stMarkdown p {{
         color: {text_color} !important;
         font-weight: 700 !important;
     }}
-    .stCaption, [data-testid="stCaptionContainer"] {{
-        color: {text_color} !important;
-        font-weight: 700 !important;
-        opacity: 1 !important;
-        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4) !important;
-    }}
-    /* Прогресс-бар: текст "шаг X/3" */
+    .stCaption, [data-testid="stCaptionContainer"],
     [data-testid="stCaptionContainer"] p {{
         color: {text_color} !important;
         font-weight: 700 !important;
+        opacity: 1 !important;
+        text-shadow: {heading_shadow} !important;
     }}
     
-    /* === РАСКРЫВАЮЩИЙСЯ БЛОК "ОПИСАНИЕ ИГРЫ" === */
+    /* === РАСКРЫВАЮЩИЙСЯ БЛОК === */
     div[data-testid="stExpander"] {{
         background-color: rgba(255, 255, 255, 0.95) !important;
         border: 1px solid #1a1a1a !important;
@@ -223,14 +225,16 @@ st.markdown(f"""
     }}
     div[data-testid="stExpander"] summary * {{
         color: #1a1a1a !important;
+        -webkit-text-fill-color: #1a1a1a !important;
         font-weight: 700 !important;
         font-size: 1rem !important;
+        text-shadow: none !important;
     }}
-    /* Текст внутри раскрытого описания */
     div[data-testid="stExpander"] .stMarkdown,
     div[data-testid="stExpander"] .stMarkdown p,
     div[data-testid="stExpander"] [data-testid="stMarkdownContainer"] p {{
         color: #1a1a1a !important;
+        -webkit-text-fill-color: #1a1a1a !important;
         font-weight: 500 !important;
         text-shadow: none !important;
     }}
@@ -239,48 +243,66 @@ st.markdown(f"""
     div[role="radiogroup"] {{
         gap: 10px !important;
     }}
-    div[role="radiogroup"] > label {{
+    
+    /* Плашка ответа */
+    div[role="radiogroup"] > label,
+    div[role="radiogroup"] label {{
+        background: {card_bg} !important;
         background-color: {card_bg} !important;
         padding: 14px 18px !important;
         border-radius: 12px !important;
-        border: 1px solid rgba(255, 255, 255, 0.2) !important;
-        box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.15) !important;
+        border: 1.5px solid {card_border} !important;
+        box-shadow: 0px 3px 10px rgba(0, 0, 0, 0.25) !important;
         width: 100% !important;
         cursor: pointer !important;
         transition: all 0.2s ease !important;
         display: flex !important;
         align-items: center !important;
-        backdrop-filter: blur(4px) !important;
+        opacity: 1 !important;
     }}
-    div[role="radiogroup"] > label:hover {{
+    div[role="radiogroup"] > label:hover,
+    div[role="radiogroup"] label:hover {{
         border-color: #ff4b4b !important;
-        background-color: {card_bg} !important;
+        box-shadow: 0px 4px 14px rgba(255, 75, 75, 0.4) !important;
     }}
-    /* ТЕКСТ ВНУТРИ ПЛАШЕК — ДИНАМИЧЕСКИЙ ЦВЕТ + ЖИРНЫЙ */
+    
+    /* ВЕСЬ ТЕКСТ ВНУТРИ ПЛАШЕК — ЖИРНЫЙ И НУЖНОГО ЦВЕТА */
     div[role="radiogroup"] > label,
     div[role="radiogroup"] > label *,
     div[role="radiogroup"] > label p,
-    div[role="radiogroup"] > label span {{
+    div[role="radiogroup"] > label span,
+    div[role="radiogroup"] > label div,
+    div[role="radiogroup"] > label [class*="st-"],
+    div[role="radiogroup"] > label [data-testid],
+    div[role="radiogroup"] > label [data-testid] *,
+    div[role="radiogroup"] > label [data-baseweb] *,
+    div[role="radiogroup"] > label [data-baseweb="radio"] *,
+    div[role="radiogroup"] label p,
+    div[role="radiogroup"] label span {{
         color: {card_text} !important;
         -webkit-text-fill-color: {card_text} !important;
         font-size: 1.05rem !important;
-        font-weight: 700 !important;
+        font-weight: 800 !important;
         cursor: pointer !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        text-shadow: none !important;
     }}
     
     /* Кружок радио-кнопки */
-    div[role="radiogroup"] > label > div:first-child > div:first-child {{
-        background-color: rgba(255, 255, 255, 0.9) !important;
+    div[role="radiogroup"] > label > div:first-child > div:first-child,
+    div[role="radiogroup"] label [data-baseweb="radio"] > div:first-child {{
+        background-color: rgba(255, 255, 255, 0.95) !important;
         border: 2px solid #b0b8c1 !important;
         border-radius: 50% !important;
     }}
     
-    /* === МЕТКА "Комментарий (необязательно)" === */
+    /* === МЕТКА "Комментарий" === */
     .stTextArea label,
     .stTextArea label p {{
         color: {text_color} !important;
-        font-weight: 700 !important;
-        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4) !important;
+        font-weight: 800 !important;
+        text-shadow: {heading_shadow} !important;
     }}
     
     /* === ПОЛЕ КОММЕНТАРИЯ === */
