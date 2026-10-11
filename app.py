@@ -62,6 +62,18 @@ if 'answers' not in st.session_state:
 if 'comments' not in st.session_state:
     st.session_state.comments = {}
 
+# --- ПРЕДЗАГРУЗКА ВСЕХ ФОНОВЫХ КАРТИНОК ---
+# Это заставляет браузер скачать все картинки сразу, чтобы при смене вопроса
+# фон появлялся мгновенно, без мигания и ожидания.
+st.markdown("""
+    <div style="position:absolute; width:0; height:0; overflow:hidden; opacity:0; pointer-events:none;">
+        <img src="https://raw.githubusercontent.com/nikitakrivtsov06-cr3/bee-quiz/main/bg_bees.jpg" />
+        <img src="https://raw.githubusercontent.com/nikitakrivtsov06-cr3/bee-quiz/main/bg_maze.jpg" />
+        <img src="https://raw.githubusercontent.com/nikitakrivtsov06-cr3/bee-quiz/main/bg_soul.jpg" />
+        <img src="https://raw.githubusercontent.com/nikitakrivtsov06-cr3/bee-quiz/main/bg_final.jpg" />
+    </div>
+""", unsafe_allow_html=True)
+
 # --- ВОПРОСЫ ---
 questions = [
     {
@@ -155,17 +167,18 @@ else:
     card_text = "#1a1a1a"
     heading_shadow = "none"
 
-# --- CSS С ДИНАМИЧЕСКИМ ФОНОМ И ЦВЕТАМИ ---
+# --- CSS ---
 st.markdown(f"""
     <style>
+    /* Фон — БЕЗ fixed, так быстрее на телефоне */
     .stApp {{ 
         background-image: url("{current_bg}") !important;
         background-size: cover !important;
         background-position: center !important;
         background-repeat: no-repeat !important;
-        background-attachment: fixed !important;
     }}
     
+    /* Затемнение для читаемости */
     .stApp::before {{
         content: "";
         position: fixed;
@@ -184,11 +197,8 @@ st.markdown(f"""
         font-weight: 900 !important;
         text-shadow: {heading_shadow} !important;
     }}
-    .stMarkdown, .stMarkdown p {{
-        color: {text_color} !important;
-        font-weight: 700 !important;
-    }}
-    .stCaption, [data-testid="stCaptionContainer"],
+    .stMarkdown p,
+    .stCaption,
     [data-testid="stCaptionContainer"] p {{
         color: {text_color} !important;
         font-weight: 700 !important;
@@ -220,7 +230,6 @@ st.markdown(f"""
         font-size: 1rem !important;
         text-shadow: none !important;
     }}
-    div[data-testid="stExpander"] .stMarkdown,
     div[data-testid="stExpander"] .stMarkdown p,
     div[data-testid="stExpander"] [data-testid="stMarkdownContainer"] p {{
         color: #1a1a1a !important;
@@ -229,16 +238,12 @@ st.markdown(f"""
         text-shadow: none !important;
     }}
     
-    /* === РАДИО-КНОПКИ — БЕЗ ПЛАШЕК === */
+    /* === РАДИО-КНОПКИ — без плашек === */
     div[role="radiogroup"] {{
-        gap: 6px !important;
+        gap: 4px !important;
     }}
-    
-    /* Убираем фон, рамку, тень — оставляем чистые радио-кнопки */
-    div[role="radiogroup"] > label,
-    div[role="radiogroup"] label {{
+    div[role="radiogroup"] > label {{
         background: transparent !important;
-        background-color: transparent !important;
         padding: 8px 4px !important;
         border: none !important;
         border-radius: 0 !important;
@@ -247,45 +252,32 @@ st.markdown(f"""
         cursor: pointer !important;
         display: flex !important;
         align-items: center !important;
-        opacity: 1 !important;
     }}
-    div[role="radiogroup"] > label:hover,
-    div[role="radiogroup"] label:hover {{
+    div[role="radiogroup"] > label:hover {{
         background-color: rgba(255, 75, 75, 0.08) !important;
     }}
     
-    /* ТЕКСТ ВАРИАНТОВ — КРУПНЕЕ И ЖИРНЕЕ */
-    div[role="radiogroup"] > label,
+    /* Текст вариантов */
     div[role="radiogroup"] > label *,
     div[role="radiogroup"] > label p,
-    div[role="radiogroup"] > label span,
-    div[role="radiogroup"] > label div,
-    div[role="radiogroup"] > label [class*="st-"],
-    div[role="radiogroup"] > label [data-testid],
-    div[role="radiogroup"] > label [data-testid] *,
-    div[role="radiogroup"] > label [data-baseweb] *,
-    div[role="radiogroup"] > label [data-baseweb="radio"] *,
-    div[role="radiogroup"] label p,
-    div[role="radiogroup"] label span {{
+    div[role="radiogroup"] > label span {{
         color: {card_text} !important;
         -webkit-text-fill-color: {card_text} !important;
         font-size: 1.15rem !important;
         font-weight: 800 !important;
         cursor: pointer !important;
-        opacity: 1 !important;
-        visibility: visible !important;
         text-shadow: {heading_shadow} !important;
     }}
     
-    /* Кружок радио-кнопки — белый с обводкой */
-    div[role="radiogroup"] > label > div:first-child > div:first-child,
-    div[role="radiogroup"] label [data-baseweb="radio"] > div:first-child {{
+    /* Кружок радио-кнопки */
+    div[role="radiogroup"] > label > div:first-child > div:first-child {{
         background-color: rgba(255, 255, 255, 0.95) !important;
         border: 2px solid #b0b8c1 !important;
         border-radius: 50% !important;
         width: 22px !important;
         height: 22px !important;
         margin-right: 10px !important;
+        flex-shrink: 0 !important;
     }}
     
     /* === МЕТКА "Комментарий" === */
@@ -306,6 +298,12 @@ st.markdown(f"""
     .stTextArea textarea::placeholder {{
         color: #999999 !important;
         -webkit-text-fill-color: #999999 !important;
+    }}
+    
+    /* === КНОПКИ НАВИГАЦИИ — быстрый отклик === */
+    .stButton > button {{
+        transition: background-color 0.1s ease !important;
+        -webkit-tap-highlight-color: rgba(255, 75, 75, 0.2) !important;
     }}
     
     /* === МОБИЛЬНАЯ АДАПТАЦИЯ === */
