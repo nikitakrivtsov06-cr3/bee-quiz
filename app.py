@@ -153,8 +153,6 @@ questions = [
 total_steps = len(questions)
 
 # --- СЛУЧАЙНЫЙ ПОРЯДОК ВОПРОСОВ ---
-# Перемешиваем один раз за сессию — порядок сохраняется, пока пользователь проходит опрос.
-# Новый посетитель → новый порядок. Кнопка "Пройти заново" → тоже новый порядок.
 if 'question_order' not in st.session_state:
     order = list(range(len(questions)))
     random.shuffle(order)
@@ -163,7 +161,6 @@ if 'question_order' not in st.session_state:
 current_step = st.session_state.step
 question_order = st.session_state.question_order
 
-# Определяем, какой вопрос показывается на текущем шаге (по перемешанному порядку)
 if current_step <= total_steps:
     original_index = question_order[current_step - 1]
     q_current = questions[original_index]
@@ -217,6 +214,7 @@ st.markdown(f"""
         text-shadow: {heading_shadow} !important;
     }}
     
+    /* === РАСКРЫВАЮЩИЙСЯ БЛОК "ОПИСАНИЕ ИГРЫ" === */
     div[data-testid="stExpander"] {{
         background-color: rgba(255, 255, 255, 0.95) !important;
         border: 1px solid #1a1a1a !important;
@@ -226,20 +224,37 @@ st.markdown(f"""
     }}
     div[data-testid="stExpander"] summary {{
         background-color: rgba(255, 255, 255, 0.95) !important;
-        padding: 14px 16px !important;
+        padding: 16px 18px !important;
         cursor: pointer !important;
         list-style: none !important;
     }}
     div[data-testid="stExpander"] summary:hover {{
         background-color: #f5f5f5 !important;
     }}
-    div[data-testid="stExpander"] summary * {{
+    /* ⚠️ ЖИРНЫЙ ТЕКСТ В СТРОКЕ-РАСКРЫВАШКЕ */
+    div[data-testid="stExpander"] summary *,
+    div[data-testid="stExpander"] summary p,
+    div[data-testid="stExpander"] summary span,
+    div[data-testid="stExpander"] summary div,
+    div[data-testid="stExpander"] summary [data-testid],
+    div[data-testid="stExpander"] summary [data-testid] *,
+    div[data-testid="stExpander"] summary [data-testid="stMarkdownContainer"],
+    div[data-testid="stExpander"] summary [data-testid="stMarkdownContainer"] p {{
         color: #1a1a1a !important;
         -webkit-text-fill-color: #1a1a1a !important;
-        font-weight: 700 !important;
-        font-size: 1rem !important;
+        font-weight: 900 !important;
+        font-size: 1.05rem !important;
         text-shadow: none !important;
+        opacity: 1 !important;
     }}
+    /* Иконка-стрелочка */
+    div[data-testid="stExpander"] summary svg {{
+        fill: #1a1a1a !important;
+        color: #1a1a1a !important;
+        width: 20px !important;
+        height: 20px !important;
+    }}
+    /* Внутренний текст описания (уже не в раскрывашке, а когда открыто) */
     div[data-testid="stExpander"] .stMarkdown p,
     div[data-testid="stExpander"] [data-testid="stMarkdownContainer"] p {{
         color: #1a1a1a !important;
@@ -374,8 +389,7 @@ def to_excel(df):
 # --- ОСНОВНОЙ ИНТЕРФЕЙС ---
 if current_step <= total_steps:
     q_data = q_current
-    # Ключ для виджетов — используем original_index, чтобы у каждого вопроса свой стейт
-    widget_key_index = original_index + 1  # 1, 2, 3
+    widget_key_index = original_index + 1
     
     st.progress((current_step - 1) / total_steps)
     st.caption(f"шаг {current_step}/{total_steps}")
@@ -386,7 +400,6 @@ if current_step <= total_steps:
         with st.expander("📖  Нажмите, чтобы прочитать описание игры", expanded=False):
             st.markdown(q_data["description"])
     
-    # Восстанавливаем предыдущий выбор для ЭТОГО вопроса (не для текущего шага)
     previous_choice = st.session_state.answers.get(f"q_{widget_key_index}")
     if previous_choice in q_data["options"]:
         default_index = q_data["options"].index(previous_choice)
@@ -422,8 +435,6 @@ if current_step <= total_steps:
             st.rerun()
     with col_next:
         if st.button("Далее →", type="primary", disabled=(selected_option is None), use_container_width=True):
-            # Сохраняем ответ по НОМЕРУ ВОПРОСА, а не по номеру шага.
-            # Так столбцы в Google Sheets остаются осмысленными: q_1 = пчёлы, q_2 = лабиринт, q_3 = рогалик
             st.session_state.answers[f"q_{widget_key_index}"] = selected_option
             st.session_state.comments[f"comment_{widget_key_index}"] = comment
             
@@ -444,7 +455,6 @@ else:
         st.success("🎉 Спасибо за прохождение опроса!")
         st.write("")
         if st.button("Пройти заново", type="primary", use_container_width=True):
-            # Сбрасываем состояние, включая порядок вопросов — при следующем прохождении будет новый случайный порядок
             st.session_state.step = 1
             st.session_state.answers = {}
             st.session_state.comments = {}
