@@ -1,6 +1,7 @@
 import streamlit as st
 import os
 import io
+import random
 import pandas as pd
 from datetime import datetime
 from openpyxl.styles import Font, Alignment, PatternFill
@@ -150,16 +151,28 @@ questions = [
 ]
 
 total_steps = len(questions)
-current_step = st.session_state.step
 
-# --- ВЫБОР ФОНА И ЦВЕТОВ ПО ШАГУ ---
+# --- СЛУЧАЙНЫЙ ПОРЯДОК ВОПРОСОВ ---
+# Перемешиваем один раз за сессию — порядок сохраняется, пока пользователь проходит опрос.
+# Новый посетитель → новый порядок. Кнопка "Пройти заново" → тоже новый порядок.
+if 'question_order' not in st.session_state:
+    order = list(range(len(questions)))
+    random.shuffle(order)
+    st.session_state.question_order = order
+
+current_step = st.session_state.step
+question_order = st.session_state.question_order
+
+# Определяем, какой вопрос показывается на текущем шаге (по перемешанному порядку)
 if current_step <= total_steps:
-    q_current = questions[current_step - 1]
+    original_index = question_order[current_step - 1]
+    q_current = questions[original_index]
     current_bg = q_current["background"]
     text_color = q_current["text_color"]
     card_text = q_current["card_text"]
     heading_shadow = q_current["heading_shadow"]
 else:
+    original_index = None
     current_bg = "https://raw.githubusercontent.com/nikitakrivtsov06-cr3/bee-quiz/main/bg_final.jpg"
     text_color = "#1a1a1a"
     card_text = "#1a1a1a"
@@ -360,7 +373,9 @@ def to_excel(df):
 
 # --- ОСНОВНОЙ ИНТЕРФЕЙС ---
 if current_step <= total_steps:
-    q_data = questions[current_step - 1]
+    q_data = q_current
+    # Ключ для виджетов — используем original_index, чтобы у каждого вопроса свой стейт
+    widget_key_index = original_index + 1  # 1, 2, 3
     
     st.progress((current_step - 1) / total_steps)
     st.caption(f"шаг {current_step}/{total_steps}")
@@ -371,7 +386,8 @@ if current_step <= total_steps:
         with st.expander("📖  Нажмите, чтобы прочитать описание игры", expanded=False):
             st.markdown(q_data["description"])
     
-    previous_choice = st.session_state.answers.get(f"q_{current_step}")
+    # Восстанавливаем предыдущий выбор для ЭТОГО вопроса (не для текущего шага)
+    previous_choice = st.session_state.answers.get(f"q_{widget_key_index}")
     if previous_choice in q_data["options"]:
         default_index = q_data["options"].index(previous_choice)
     else:
@@ -381,14 +397,14 @@ if current_step <= total_steps:
         label="Options",
         options=q_data["options"],
         index=default_index,
-        key=f"radio_{current_step}",
+        key=f"radio_{widget_key_index}",
         label_visibility="collapsed"
     )
     
     comment = st.text_area(
         "Комментарий (необязательно):",
-        value=st.session_state.comments.get(f"comment_{current_step}", ""),
-        key=f"comment_input_{current_step}",
+        value=st.session_state.comments.get(f"comment_{widget_key_index}", ""),
+        key=f"comment_input_{widget_key_index}",
         placeholder="Здесь можно написать свой комментарий...",
         height=100
     )
@@ -406,8 +422,10 @@ if current_step <= total_steps:
             st.rerun()
     with col_next:
         if st.button("Далее →", type="primary", disabled=(selected_option is None), use_container_width=True):
-            st.session_state.answers[f"q_{current_step}"] = selected_option
-            st.session_state.comments[f"comment_{current_step}"] = comment
+            # Сохраняем ответ по НОМЕРУ ВОПРОСА, а не по номеру шага.
+            # Так столбцы в Google Sheets остаются осмысленными: q_1 = пчёлы, q_2 = лабиринт, q_3 = рогалик
+            st.session_state.answers[f"q_{widget_key_index}"] = selected_option
+            st.session_state.comments[f"comment_{widget_key_index}"] = comment
             
             if current_step == total_steps:
                 if save_to_gsheets(st.session_state.answers, st.session_state.comments):
@@ -426,9 +444,11 @@ else:
         st.success("🎉 Спасибо за прохождение опроса!")
         st.write("")
         if st.button("Пройти заново", type="primary", use_container_width=True):
+            # Сбрасываем состояние, включая порядок вопросов — при следующем прохождении будет новый случайный порядок
             st.session_state.step = 1
             st.session_state.answers = {}
             st.session_state.comments = {}
+            st.session_state.pop('question_order', None)
             st.rerun()
     
     st.write("")
